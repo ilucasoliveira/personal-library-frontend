@@ -27,8 +27,26 @@ return (
             </div>
         </div>
             <div style={{ padding: "var(--space-3)" }}>
-                <p style={{ margin: 0, color: "var(--color-text-primary)", fontSize: "var(--text-small)", fontWeight: "var(--font-weight-semibold)" }}>{title}</p>
-                <p style={{ margin: 0, color: "var(--color-text-muted)", fontSize: "var(--text-caption)" }}>{author}</p>
+                <p style={{
+                    margin: 0,
+                    color: "var(--color-text-primary)",
+                    fontSize: "var(--text-small)",
+                    fontWeight: "var(--font-weight-semibold)",
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                    lineHeight: "1.3em",
+                    minHeight: "2.6em",
+                }}>{title}</p>
+                <p style={{
+                    margin: "4px 0 0",
+                    color: "var(--color-text-muted)",
+                    fontSize: "var(--text-caption)",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                }}>{author}</p>
                 <div style={{ marginTop: "6px", display: "flex", gap: "2px" }}>
                 {[1, 2, 3, 4, 5].map((i) => (
                     <span key={i} style={{ fontSize: "12px", color: i <= rating ? "var(--color-star-filled)" : "var(--color-star-empty)" }}>★</span>
