@@ -33,11 +33,41 @@ export default function Profile({ books, profile, onProfileUpdated }) {
     ? Object.entries(genderCounts).sort((a, b) => b[1] - a[1])[0][0]
     : "—";
 
+    const readBooks = books.filter((b) => b.reading_status === "read");
+    const authorCounts = readBooks.reduce((acc, b) => {
+        acc[b.author] = (acc[b.author] || 0) + 1;
+    return acc;
+    }, {});
+    const topAuthor = Object.keys(authorCounts).length
+    ? Object.entries(authorCounts).sort((a, b) => b[1] - a[1])[0][0]
+    : "—";
+
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    const currentlyReadingCount = books.filter((b) => b.reading_status === "reading").length;
+
+    const readThisMonth = books.filter((b) => {
+        if (!b.finished_date) return false;
+        const finished = new Date(b.finished_date + "T00:00:00");
+        return finished.getFullYear() === currentYear && finished.getMonth() === currentMonth;
+    }).length;
+
+    const readThisYear = books.filter((b) => {
+        if (!b.finished_date) return false;
+        const finished = new Date(b.finished_date + "T00:00:00");
+        return finished.getFullYear() === currentYear;
+    }).length;
+
     const stats = [
     { label: "Livros lidos", value: totalRead },
-    { label: "Nota média", value: avgRating },
+    { label: "Lendo agora", value: currentlyReadingCount },
+    { label: "Autor mais lido", value: topAuthor },
     { label: "Gênero favorito", value: favoriteGender },
     { label: "Total na estante", value: totalBooks },
+    { label: "Nota média", value: avgRating },
+    { label: "Lidos este mês", value: readThisMonth },
+    { label: "Lidos este ano", value: readThisYear },
     ];
 
     return (
