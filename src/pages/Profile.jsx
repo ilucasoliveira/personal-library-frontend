@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { updateProfile, uploadProfilePhoto } from "../services/api";
 
-export default function Profile({ books, profile, onProfileUpdated }) {
+export default function Profile({ books, profile, onProfileUpdated, onLogout }) {
     const [photoUrl, setPhotoUrl] = useState(profile?.photo_url || "");
 
     async function handleSavePhoto() {
@@ -15,6 +15,12 @@ export default function Profile({ books, profile, onProfileUpdated }) {
         const updated = await uploadProfilePhoto(file);
         onProfileUpdated(updated);
         setPhotoUrl(updated.photo_url);
+    }
+
+    function handleLogoutClick() {
+        const confirmed = window.confirm("Tem certeza que deseja sair?");
+        if (!confirmed) return;
+        onLogout();
     }
 
     const totalRead = books.filter((b) => b.reading_status === "read").length;
@@ -124,6 +130,24 @@ export default function Profile({ books, profile, onProfileUpdated }) {
         Série favorita: The Vampire Diaries<br />
         Cores favoritas: Rosa &amp; Azul<br />
         Artista favorita: Taylor Swift
+        </div>
+
+        <div style={{ maxWidth: "400px", margin: "24px auto 0", textAlign: "center" }}>
+        <button
+            onClick={handleLogoutClick}
+            style={{
+                background: "none",
+                border: "1px solid var(--color-error)",
+                color: "var(--color-error)",
+                borderRadius: "var(--radius-sm)",
+                padding: "8px 20px",
+                fontSize: "13px",
+                cursor: "pointer",
+                fontFamily: "var(--font-ui)",
+            }}
+        >
+            Sair da conta
+        </button>
         </div>
     </div>
     );

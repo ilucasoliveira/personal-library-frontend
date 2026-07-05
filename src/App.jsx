@@ -1,5 +1,5 @@
 import Login from "./pages/Login";
-import { setAuth } from "./services/api";
+import { setAuth, clearAuth } from "./services/api";
 import { getCoverColor } from "./utils/coverColor";
 import { useState, useEffect } from "react";
 import BookCard from "./components/BookCard";
@@ -73,6 +73,12 @@ function App() {
     if (!quickSearch.trim()) return;
       setSearchPrefill(quickSearch);
       setView("search");
+  }
+
+  function handleLogout() {
+    clearAuth();
+    localStorage.removeItem("authToken");
+    setAuthToken(null);
   }
 
   const filteredBooks = books
@@ -177,7 +183,7 @@ setAuth(authToken);
       ) : view === "search" ? (
         <SearchBooks onGoManual={handleGoManual} initialQuery={searchPrefill} />
       ) : view === "profile" ? (
-        <Profile books={books} profile={profile} onProfileUpdated={handleProfileUpdated} />
+        <Profile books={books} profile={profile} onProfileUpdated={handleProfileUpdated} onLogout={handleLogout} />
       ) : view === "addManual" ? (
         <AddManual onCreated={handleCreated} onCancel={() => setView("library")} initialTitle={manualPrefill} />
       ): loading ? (
