@@ -1,11 +1,21 @@
 const API_URL = import.meta.env.VITE_API_URL;
-const AUTH = btoa(`${import.meta.env.VITE_API_USER}:${import.meta.env.VITE_API_PASSWORD}`);
+let AUTH = null;
+
+export function setAuth(token) {
+    AUTH = token;
+}
+
+export function clearAuth() {
+    AUTH = null;
+}
+
+function authHeader() {
+    return { Authorization: `Basic ${AUTH}` };
+}
 
 export async function getBooks() {
 const response = await fetch(`${API_URL}/books`, {
-    headers: {
-    Authorization: `Basic ${AUTH}`,
-    },
+    headers: authHeader(),
 });
 
 if (!response.ok) {
@@ -20,7 +30,7 @@ const response = await fetch(`${API_URL}/create`, {
     method: "POST",
     headers: {
     "Content-Type": "application/json",
-    Authorization: `Basic ${AUTH}`,
+    ...authHeader(),
     },
     body: JSON.stringify(book),
 });
@@ -37,7 +47,7 @@ const response = await fetch(`${API_URL}/update/${id}`, {
     method: "PUT",
     headers: {
         "Content-Type": "application/json",
-        Authorization: `Basic ${AUTH}`,
+        ...authHeader(),
     },
     body: JSON.stringify(data),
 });
@@ -52,9 +62,7 @@ return response.json();
 export async function deleteBook(id) {
     const response = await fetch(`${API_URL}/delete/${id}`, {
     method: "DELETE",
-    headers: {
-        Authorization: `Basic ${AUTH}`,
-        },
+    headers: authHeader(),
     });
 
     if (!response.ok) {
@@ -64,7 +72,7 @@ export async function deleteBook(id) {
 
 export async function getProfile() {
     const response = await fetch(`${API_URL}/profile`, {
-    headers: { Authorization: `Basic ${AUTH}` },
+    headers: authHeader(),
     });
     if (!response.ok) throw new Error("Erro ao buscar perfil");
     return response.json();
@@ -75,7 +83,7 @@ export async function updateProfile(data) {
     method: "PUT",
     headers: {
         "Content-Type": "application/json",
-        Authorization: `Basic ${AUTH}`,
+        ...authHeader(),
     },
     body: JSON.stringify(data),
     });
@@ -89,9 +97,7 @@ export async function uploadProfilePhoto(file) {
 
     const response = await fetch(`${API_URL}/profile/upload`, {
     method: "POST",
-    headers: {
-        Authorization: `Basic ${AUTH}`,
-    },
+    headers: authHeader(),
     body: formData,
     });
 

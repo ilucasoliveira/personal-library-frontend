@@ -1,3 +1,5 @@
+import Login from "./pages/Login";
+import { setAuth } from "./services/api";
 import { getCoverColor } from "./utils/coverColor";
 import { useState, useEffect } from "react";
 import BookCard from "./components/BookCard";
@@ -8,6 +10,7 @@ import Profile from "./pages/Profile";
 import AddManual from "./pages/AddManual";
 
 function App() {
+  const [authToken, setAuthToken] = useState(() => localStorage.getItem("authToken"));
   const [view, setView] = useState("library");
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -34,15 +37,17 @@ function App() {
   }
 
   useEffect(() => {
+    if (!authToken) return;
     getBooks()
       .then(setBooks)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [view]);
+  }, [view, authToken]);
 
   useEffect(() => {
+    if (!authToken) return;
     getProfile().then(setProfile).catch(() => {});
-  }, []);
+  }, [authToken]);
 
   function handleUpdated(updatedBook) {
     setSelectedBook(updatedBook);
@@ -98,6 +103,20 @@ function App() {
   ];
 
   const currentlyReading = books.filter((b) => b.reading_status === "reading");
+
+  if (!authToken) {
+    return (
+      <Login
+        onLogin={(token) => {
+          setAuth(token);
+          localStorage.setItem("authToken", token);
+          setAuthToken(token);
+        }}
+      />
+    );
+  }
+
+setAuth(authToken);
 
   return (
     <div>
