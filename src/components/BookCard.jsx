@@ -1,6 +1,9 @@
+import { getCoverColor, getGenderColor } from "../utils/coverColor";
+
 export default function BookCard({
 title,
 author,
+gender = null,
 coverColor = "var(--color-primary)",
 coverUrl = null,
 rating = 0,
@@ -39,6 +42,24 @@ return (
                     lineHeight: "1.3em",
                     minHeight: "2.6em",
                 }}>{title}</p>
+                {gender && (
+                <span style={{
+                    display: "block",
+                    marginTop: "4px",
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "9px",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.03em",
+                    padding: "2px 8px",
+                    borderRadius: "var(--radius-pill)",
+                    background: getGenderColor(gender).bg,
+                    color: getGenderColor(gender).text,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    maxWidth: "fit-content",
+                }}>{gender}</span>
+                )}
                 <p style={{
                     margin: "4px 0 0",
                     color: "var(--color-text-muted)",

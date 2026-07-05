@@ -233,6 +233,7 @@ setAuth(authToken);
                   <BookCard
                     title={book.title}
                     author={book.author}
+                    gender={book.gender}
                     coverColor={getCoverColor(book.title)}
                     coverUrl={book.cover_url}
                     rating={book.grade || 0}
@@ -345,6 +346,7 @@ setAuth(authToken);
                   key={book.id}
                   title={book.title}
                   author={book.author}
+                  gender={book.gender}
                   coverColor={getCoverColor(book.title)}
                   coverUrl={book.cover_url}
                   rating={book.grade || 0}

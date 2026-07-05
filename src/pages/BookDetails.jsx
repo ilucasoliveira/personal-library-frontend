@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { updateBook, deleteBook } from "../services/api";
+import { getGenderColor } from "../utils/coverColor";
 
 export default function BookDetails({ book, onBack, onUpdated, onDeleted }) {
     const [rating, setRating] = useState(book.grade || 0);
@@ -133,7 +134,7 @@ export default function BookDetails({ book, onBack, onUpdated, onDeleted }) {
                 </div>
                 <p style={{ color: "var(--color-text-secondary)", margin: "4px 0 12px" }}>{book.author}</p>
 
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: "11px", textTransform: "uppercase", padding: "5px 12px", borderRadius: "var(--radius-pill)", background: "rgba(124,147,195,0.15)", color: "var(--color-secondary)" }}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "11px", textTransform: "uppercase", padding: "5px 12px", borderRadius: "var(--radius-pill)", background: getGenderColor(book.gender).bg, color: getGenderColor(book.gender).text }}>
                 {book.gender}
                 </span>
 
