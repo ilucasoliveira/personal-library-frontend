@@ -1,5 +1,5 @@
-const API_URL = "http://localhost:8000";
-const AUTH = btoa("c1c905ec:mrawRqpWwtH7hkuWZlcYaA");
+const API_URL = import.meta.env.VITE_API_URL;
+const AUTH = btoa(`${import.meta.env.VITE_API_USER}:${import.meta.env.VITE_API_PASSWORD}`);
 
 export async function getBooks() {
 const response = await fetch(`${API_URL}/books`, {
