@@ -53,18 +53,25 @@ export default function Login({ onLogin }) {
           boxShadow: "var(--shadow-modal)",
         }}
       >
-        <h1
+      <h1
+          className="nav-brand"
           style={{
-            fontFamily: "var(--font-display)",
-            fontStyle: "italic",
-            color: "var(--color-text-primary)",
-            textAlign: "center",
-            marginBottom: "28px",
+            justifyContent: "center",
             fontSize: "22px",
+            margin: "0 0 28px",
           }}
+      >
+        <svg
+          className="moon"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          xmlns="http://www.w3.org/2000/svg"
+          style={{ width: "18px", height: "18px" }}
         >
-          🌙 Biblioteca do Thur
-        </h1>
+          <path d="M12 2a10 10 0 1 0 9.8 12.1A8 8 0 0 1 12 2Z" />
+        </svg>
+        Biblioteca do Thur
+      </h1>
 
         <input
           value={username}
