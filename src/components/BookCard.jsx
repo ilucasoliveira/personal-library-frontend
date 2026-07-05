@@ -18,7 +18,8 @@ const statusIcon = {
 }[status];
 
 return (
-    <div onClick={onClick} className="book-card" style={{ background: "var(--color-card)", borderRadius: "var(--radius-md)", overflow: "hidden", boxShadow: "var(--shadow-card)", width: "100%", fontFamily: "var(--font-ui)", cursor: "pointer" }}>        <div style={{ background: coverUrl ? "none" : coverColor, height: "220px", position: "relative" }}>
+    <div onClick={onClick} className="book-card" style={{ background: "var(--color-card)", borderRadius: "var(--radius-md)", overflow: "hidden", boxShadow: "var(--shadow-card)", width: "100%", fontFamily: "var(--font-ui)", cursor: "pointer", display: "flex", flexDirection: "column", height: "100%" }}>
+        <div style={{ background: coverUrl ? "none" : coverColor, height: "220px", position: "relative", flexShrink: 0 }}>
             {coverUrl && (
                 <img src={coverUrl} alt={title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             )}
@@ -29,7 +30,7 @@ return (
                     {favorite ? "♥" : "♡"}
             </div>
         </div>
-            <div style={{ padding: "var(--space-3)" }}>
+            <div style={{ padding: "var(--space-3)", display: "flex", flexDirection: "column", flexGrow: 1 }}>
                 <p style={{
                     margin: 0,
                     color: "var(--color-text-primary)",
@@ -40,7 +41,6 @@ return (
                     WebkitBoxOrient: "vertical",
                     overflow: "hidden",
                     lineHeight: "1.3em",
-                    minHeight: "2.6em",
                 }}>{title}</p>
                 {gender && (
                 <span style={{
@@ -68,7 +68,7 @@ return (
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                 }}>{author}</p>
-                <div style={{ marginTop: "6px", display: "flex", gap: "2px" }}>
+                <div style={{ marginTop: "auto", paddingTop: "6px", display: "flex", gap: "2px" }}>
                 {[1, 2, 3, 4, 5].map((i) => (
                     <span key={i} style={{ fontSize: "12px", color: i <= rating ? "var(--color-star-filled)" : "var(--color-star-empty)" }}>★</span>
                 ))}
