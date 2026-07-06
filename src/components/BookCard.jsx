@@ -1,15 +1,16 @@
 import { getCoverColor, getGenderColor } from "../utils/coverColor";
 
 export default function BookCard({
-title,
-author,
-gender = null,
-coverColor = "var(--color-primary)",
-coverUrl = null,
-rating = 0,
-favorite = false,
-status = "reading", // "toRead" | "reading" | "read"
-onClick,
+    title,
+    author,
+    gender = null,
+    coverColor = "var(--color-primary)",
+    coverUrl = null,
+    rating = 0,
+    favorite = false,
+    status = "reading",
+    onClick,
+    onToggleFavorite,
 }) {
 const statusIcon = {
     toRead: "🌙",
@@ -26,9 +27,27 @@ return (
             <div style={{ position: "absolute", top: "8px", left: "8px", width: "22px", height: "22px", borderRadius: "50%", background: "rgba(20,21,43,0.7)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px" }}>
                 {statusIcon}
             </div>
-            <div style={{ position: "absolute", top: "8px", right: "8px", fontSize: "16px", color: favorite ? "var(--color-favorite)" : "rgba(255,255,255,0.7)" }}>
-                    {favorite ? "♥" : "♡"}
-            </div>
+            <button
+                onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleFavorite?.();
+                }}
+                aria-label={favorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+                style={{
+                    position: "absolute",
+                    top: "8px",
+                    right: "8px",
+                    fontSize: "16px",
+                    color: favorite ? "var(--color-favorite)" : "rgba(255,255,255,0.7)",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: "4px",
+                    lineHeight: 1,
+                }}
+            >
+                {favorite ? "♥" : "♡"}
+            </button>
         </div>
             <div style={{ padding: "var(--space-3)", display: "flex", flexDirection: "column", flexGrow: 1 }}>
                 <p style={{

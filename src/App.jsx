@@ -3,7 +3,7 @@ import { setAuth, clearAuth } from "./services/api";
 import { getCoverColor } from "./utils/coverColor";
 import { useState, useEffect } from "react";
 import BookCard from "./components/BookCard";
-import { getBooks, getProfile } from "./services/api";
+import { getBooks, getProfile, updateBook } from "./services/api";
 import SearchBooks from "./pages/SearchBooks";
 import BookDetails from "./pages/BookDetails";
 import Profile from "./pages/Profile";
@@ -80,6 +80,11 @@ function App() {
     clearAuth();
     localStorage.removeItem("authToken");
     setAuthToken(null);
+  }
+
+  async function handleToggleFavorite(book) {
+    const updated = await updateBook(book.id, { favorite: !book.favorite });
+    setBooks((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
   }
 
   const filteredBooks = books
@@ -250,6 +255,7 @@ setAuth(authToken);
                     favorite={book.favorite}
                     status={book.reading_status}
                     onClick={() => setSelectedBook(book)}
+                    onToggleFavorite={() => handleToggleFavorite(book)}
                   />
                 </div>
               ))}
@@ -363,6 +369,7 @@ setAuth(authToken);
                   favorite={book.favorite}
                   status={book.reading_status}
                   onClick={() => setSelectedBook(book)}
+                  onToggleFavorite={() => handleToggleFavorite(book)}
                 />
               ))}
             </div>
