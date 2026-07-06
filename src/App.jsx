@@ -72,6 +72,7 @@ function App() {
     e.preventDefault();
     if (!quickSearch.trim()) return;
       setSearchPrefill(quickSearch);
+      setQuickSearch("");
       setView("search");
   }
 
@@ -184,7 +185,7 @@ setAuth(authToken);
           onDeleted={handleDeleted}
         /> 
       ) : view === "search" ? (
-        <SearchBooks onGoManual={handleGoManual} initialQuery={searchPrefill} />
+        <SearchBooks onGoManual={handleGoManual} initialQuery={searchPrefill} onConsumeInitialQuery={() => setSearchPrefill("")} />
       ) : view === "profile" ? (
         <Profile books={books} profile={profile} onProfileUpdated={handleProfileUpdated} onLogout={handleLogout} />
       ) : view === "addManual" ? (

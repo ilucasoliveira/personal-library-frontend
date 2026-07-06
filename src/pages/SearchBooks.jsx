@@ -5,7 +5,7 @@ import BookResultCard from "../components/BookResultCard";
 
 const PAGE_SIZE = 10;
 
-export default function SearchBooks({ onGoManual, initialQuery = ""}) {
+export default function SearchBooks({ onGoManual, initialQuery = "", onConsumeInitialQuery}) {
     const [query, setQuery] = useState(initialQuery);
     const [results, setResults] = useState([]);
     const [searching, setSearching] = useState(Boolean(initialQuery.trim()));
@@ -22,8 +22,9 @@ export default function SearchBooks({ onGoManual, initialQuery = ""}) {
 
     useEffect(() => {
         if (initialQuery.trim()) {
-        setPage(0);
-        runSearch(initialQuery, 0);
+            setPage(0);
+            runSearch(initialQuery, 0);
+            onConsumeInitialQuery?.();
         }
     }, []);
 
@@ -74,7 +75,7 @@ export default function SearchBooks({ onGoManual, initialQuery = ""}) {
 
         {searching && <p style={{ color: "var(--color-text-secondary)" }}>Buscando...</p>}
 
-        <div style={{ maxWidth: "500px" }}>
+        <div className="book-grid">
         {results.map((book) => (
             <BookResultCard key={book.googleId} book={book} onAdd={handleAdd} />
         ))}
