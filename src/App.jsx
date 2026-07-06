@@ -129,8 +129,11 @@ setAuth(authToken);
       <nav className="app-nav">
         <button
           className="nav-brand"
-          onClick={() => setView("library")}
-          style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}
+          onClick={() => {
+            setView("library");
+            setSelectedBook(null);
+          }}
+        style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}
         >
           <svg className="moon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
           <path d="M12 2a10 10 0 1 0 9.8 12.1A8 8 0 0 1 12 2Z" />
