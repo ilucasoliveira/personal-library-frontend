@@ -534,6 +534,19 @@ function App() {
           )}
         </div>
       )}
+      <footer
+        style={{
+          textAlign: "center",
+          padding: "24px 20px",
+          fontFamily: "var(--font-mono)",
+          fontSize: "11px",
+          letterSpacing: "0.03em",
+          color: "var(--color-text-muted)",
+          borderTop: "1px solid var(--color-border)",
+        }}
+      >
+        © 2026 Lucas de Oliveira · Built with ♥.
+      </footer>
     </div>
   );
 }
