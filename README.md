@@ -25,7 +25,9 @@ This is the frontend counterpart to [personal-library-api](https://github.com/il
 ## ✨ Features
 
 - Login screen backed by the API's HTTP Basic Auth — no credentials are baked into the client bundle, only entered at runtime and kept in the browser session
+- Animated twilight-gradient hero on the login screen, tying into the app's visual identity
 - Book search via Google Books API, with pagination and manual-entry fallback
+- Inline field validation on manual book entry — no browser alerts, errors surface next to the relevant field
 - Personal library with tab-based filtering (favorites, to-read, read, all)
 - In-library search and multi-criteria sorting (title, author, genre)
 - Book details view with inline editing, 5-star rating, favoriting, and personal comments
@@ -64,7 +66,7 @@ src/
 
 ## 🚀 Running Locally
 
-**Requirements:** Node.js 18+, a running instance of [personal-library-api](https://github.com/ilucasoliveira/personal-library-api).
+**Requirements:** Node.js 20.19+ (or 22.12+), a running instance of [personal-library-api](https://github.com/ilucasoliveira/personal-library-api).
 
 ```bash
 # Clone the repository
