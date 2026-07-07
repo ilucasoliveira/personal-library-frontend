@@ -33,12 +33,12 @@ export default function Login({ onLogin }) {
 
   return (
     <div
+      className="twilight-hero-bg"
       style={{
         minHeight: "100vh",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "var(--color-background)",
         fontFamily: "var(--font-ui)",
         padding: "20px",
       }}
@@ -54,25 +54,25 @@ export default function Login({ onLogin }) {
           boxShadow: "var(--shadow-modal)",
         }}
       >
-      <h1
+        <h1
           className="nav-brand"
           style={{
             justifyContent: "center",
             fontSize: "22px",
             margin: "0 0 28px",
           }}
-      >
-        <svg
-          className="moon"
-          viewBox="0 0 24 24"
-          fill="currentColor"
-          xmlns="http://www.w3.org/2000/svg"
-          style={{ width: "18px", height: "18px" }}
         >
-          <path d="M12 2a10 10 0 1 0 9.8 12.1A8 8 0 0 1 12 2Z" />
-        </svg>
-        Biblioteca do Thur
-      </h1>
+          <svg
+            className="moon"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            xmlns="http://www.w3.org/2000/svg"
+            style={{ width: "18px", height: "18px" }}
+          >
+            <path d="M12 2a10 10 0 1 0 9.8 12.1A8 8 0 0 1 12 2Z" />
+          </svg>
+          Biblioteca do Thur
+        </h1>
 
         <input
           value={username}
@@ -125,12 +125,26 @@ export default function Login({ onLogin }) {
             }}
           >
             {showPassword ? (
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                width="18"
+                height="18"
+              >
                 <path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-5 0-9.27-3.11-11-8 .77-2.19 2.15-4.1 3.94-5.5M9.9 4.24A9.12 9.12 0 0 1 12 4c5 0 9.27 3.11 11 8a13.16 13.16 0 0 1-1.67 2.68M14.12 14.12A3 3 0 1 1 9.88 9.88" />
                 <line x1="1" y1="1" x2="23" y2="23" />
               </svg>
             ) : (
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                width="18"
+                height="18"
+              >
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z" />
                 <circle cx="12" cy="12" r="3" />
               </svg>
@@ -139,7 +153,13 @@ export default function Login({ onLogin }) {
         </div>
 
         {error && (
-          <p style={{ color: "var(--color-error)", fontSize: "13px", marginBottom: "12px" }}>
+          <p
+            style={{
+              color: "var(--color-error)",
+              fontSize: "13px",
+              marginBottom: "12px",
+            }}
+          >
             {error}
           </p>
         )}
