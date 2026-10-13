@@ -20,7 +20,8 @@ This is the frontend counterpart to [personal-library-api](https://github.com/il
 - **Vite** — dev server and build tooling
 - **vite-plugin-pwa** — installable Progressive Web App support
 - **Vanilla CSS custom properties** — a hand-built design system (colors, spacing, typography scale) instead of a component library
-- **Google Books API** — external book search integration
+- **Google Books API + Open Library**: external book search, the second one as a fallback
+- **Fontsource**: Fraunces, Inter, Literata and IBM Plex Mono served from the app itself
 
 ---
 
@@ -31,7 +32,7 @@ This is the frontend counterpart to [personal-library-api](https://github.com/il
 - **Two languages**: Portuguese and English, detected from the browser on first visit and saved on the account. No i18n library: one dictionary per language and a small React hook
 - Account settings: change name and password, delete the account
 - Animated twilight-gradient hero on the login screen, tying into the app's visual identity
-- Book search via Google Books API, with pagination and manual-entry fallback
+- Book search on Google Books with Open Library as a second source when Google is down or finds nothing; a search error is shown apart from "no results", with a retry button and manual entry as a fallback
 - Inline field validation on manual book entry — no browser alerts, errors surface next to the relevant field
 - Personal library with tab-based filtering (favorites, to-read, read, all)
 - In-library search and multi-criteria sorting (title, author, genre)
@@ -70,7 +71,7 @@ src/
 ├── config.js                 # App name and public-deployment flag
 ├── services/
 │   ├── api.js                  # Backend REST client (bearer token, translated errors)
-│   └── googleBooks.js          # Google Books API client
+│   └── googleBooks.js          # Book search: Google Books, then Open Library
 └── utils/
     └── coverColor.js            # Deterministic color generator for covers without an image
 ```

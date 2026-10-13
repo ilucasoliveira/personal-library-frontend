@@ -56,13 +56,12 @@ body {
   --color-error: #d97066;
   --color-warning: #e8b655;
 
-  --font-display: "Fraunces", serif; /* títulos */
-  --font-display-italic:
-    "Fraunces", serif; /* subtítulos, usar font-style: italic */
-  --font-reading: "Literata", serif; /* sinopses, comentários longos */
-  --font-ui: "Inter", sans-serif; /* interface geral, botões, labels */
-  --font-mono:
-    "IBM Plex Mono", monospace; /* tags, carimbos, Ficha de Biblioteca */
+  /* fontes carregadas em main.jsx (@fontsource); depois do nome, as alternativas do sistema */
+  --font-display: "Fraunces Variable", Georgia, serif; /* títulos */
+  --font-display-italic: "Fraunces Variable", Georgia, serif; /* subtítulos, usar font-style: italic */
+  --font-reading: "Literata Variable", Georgia, serif; /* sinopses, comentários longos */
+  --font-ui: "Inter Variable", system-ui, -apple-system, "Segoe UI", sans-serif; /* interface geral, botões, labels */
+  --font-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace; /* tags, carimbos, Ficha de Biblioteca */
 
   --font-weight-regular: 400;
   --font-weight-medium: 500;

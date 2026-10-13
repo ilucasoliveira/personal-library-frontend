@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useI18n } from "../i18n";
-import { changePassword, deleteAccount, updateMe } from "../services/api";
+import { changePassword, deleteAccount, saveToken, updateMe } from "../services/api";
 import { ACCENTS, THEMES, applyAppearance, readSavedAppearance } from "../theme";
 import { notify } from "../utils/notify";
 
@@ -86,7 +86,10 @@ export default function Settings({ user, onUserUpdated, onBack, onLogout }) {
     }
     setBusy("password");
     try {
-      await changePassword(passwords.current, passwords.next);
+      // a troca derruba as outras sessões e devolve um token novo para esta
+      const session = await changePassword(passwords.current, passwords.next);
+      saveToken(session.access_token);
+      onUserUpdated(session.user);
       setPasswords({ current: "", next: "" });
       notify(t("settings.passwordChanged"), "success");
     } catch (err) {

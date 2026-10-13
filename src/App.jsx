@@ -1,6 +1,6 @@
 import Login from "./pages/Login";
 import { getCoverColor } from "./utils/coverColor";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import BookCard from "./components/BookCard";
 import {
   clearToken,
@@ -39,6 +39,13 @@ function App() {
   const [quickSearch, setQuickSearch] = useState("");
   const [librarySearch, setLibrarySearch] = useState("");
   const [sortBy, setSortBy] = useState("title-asc");
+  // posição da estante ao abrir um livro, para voltar ao mesmo ponto
+  const libraryScroll = useRef(null);
+
+  function openBook(book) {
+    libraryScroll.current = window.scrollY;
+    setSelectedBook(book);
+  }
 
   function handleDeleted(deletedId) {
     setBooks((prev) => prev.filter((b) => b.id !== deletedId));
@@ -87,6 +94,19 @@ function App() {
   }, [t]);
 
   const userId = user?.id;
+  const selectedId = selectedBook?.id;
+
+  // cada tela começa do topo; ao fechar um livro, a estante volta para onde estava
+  useEffect(() => {
+    if (!selectedId && view === "library" && libraryScroll.current !== null) {
+      window.scrollTo(0, libraryScroll.current);
+      libraryScroll.current = null;
+    } else {
+      window.scrollTo(0, 0);
+      if (!selectedId) libraryScroll.current = null;
+    }
+  }, [view, selectedId]);
+
   useEffect(() => {
     if (!userId) return;
     getBooks()
@@ -492,7 +512,7 @@ function App() {
                       favorite={book.favorite}
                       status={book.reading_status}
                       isExample={book.is_example}
-                      onClick={() => setSelectedBook(book)}
+                      onClick={() => openBook(book)}
                       onToggleFavorite={() => handleToggleFavorite(book)}
                     />
                   </div>
@@ -636,7 +656,7 @@ function App() {
                   favorite={book.favorite}
                   status={book.reading_status}
                   isExample={book.is_example}
-                  onClick={() => setSelectedBook(book)}
+                  onClick={() => openBook(book)}
                   onToggleFavorite={() => handleToggleFavorite(book)}
                 />
               ))}

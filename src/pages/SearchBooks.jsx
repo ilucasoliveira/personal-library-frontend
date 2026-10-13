@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { searchGoogleBooks } from "../services/googleBooks";
+import { searchBooks, SOURCES } from "../services/googleBooks";
 import { createBook } from "../services/api";
 import { notify } from "../utils/notify";
 import BookResultCard from "../components/BookResultCard";
@@ -18,19 +18,24 @@ export default function SearchBooks({
   const [searching, setSearching] = useState(Boolean(initialQuery.trim()));
   const [page, setPage] = useState(0);
   const [totalItems, setTotalItems] = useState(0);
+  // o que foi buscado de fato (o campo pode ter mudado depois) e de qual catálogo veio
+  const [searched, setSearched] = useState(null);
+  const [failed, setFailed] = useState(false);
 
-  async function runSearch(searchQuery, pageIndex) {
+  async function runSearch(searchQuery, pageIndex, source = null) {
     setSearching(true);
+    setFailed(false);
     try {
-      const { items, totalItems: total } = await searchGoogleBooks(
-        searchQuery,
-        pageIndex * PAGE_SIZE,
-        PAGE_SIZE,
-      );
-      setResults(items);
-      setTotalItems(total);
+      const data = await searchBooks(searchQuery, pageIndex * PAGE_SIZE, PAGE_SIZE, source);
+      setResults(data.items);
+      setTotalItems(data.totalItems);
+      setSearched({ query: searchQuery, source: data.source });
     } catch {
-      notify(t("search.error"));
+      // as duas fontes falharam: é erro, não "livro não encontrado"
+      setResults([]);
+      setTotalItems(0);
+      setSearched({ query: searchQuery, source: null });
+      setFailed(true);
     } finally {
       setSearching(false);
     }
@@ -53,7 +58,12 @@ export default function SearchBooks({
 
   async function goToPage(newPage) {
     setPage(newPage);
-    await runSearch(query, newPage);
+    await runSearch(searched.query, newPage, searched.source);
+  }
+
+  function retry() {
+    setPage(0);
+    runSearch(searched.query, 0);
   }
 
   async function handleAdd(book) {
@@ -88,6 +98,8 @@ export default function SearchBooks({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t("search.placeholder")}
+          aria-label={t("search.placeholder")}
+          type="search"
           style={{
             flex: 1,
             maxWidth: "400px",
@@ -124,6 +136,35 @@ export default function SearchBooks({
           <BookResultCard key={book.googleId} book={book} onAdd={handleAdd} />
         ))}
       </div>
+
+      {!searching && results.length > 0 && searched?.source && (
+        <p
+          style={{
+            margin: "16px 0 0",
+            fontSize: "12px",
+            color: "var(--color-text-muted)",
+          }}
+        >
+          {t("search.source", { source: SOURCES[searched.source] })}
+        </p>
+      )}
+
+      {!searching && failed && (
+        <div
+          role="alert"
+          style={{ maxWidth: "500px", textAlign: "center", marginTop: "20px" }}
+        >
+          <p style={{ color: "var(--color-text-secondary)" }}>{t("search.failed")}</p>
+          <div style={{ display: "flex", gap: "8px", justifyContent: "center", flexWrap: "wrap" }}>
+            <button className="btn-primary" onClick={retry}>
+              {t("search.retry")}
+            </button>
+            <button className="btn-ghost" onClick={() => onGoManual(searched.query)}>
+              {t("search.addManual")}
+            </button>
+          </div>
+        </div>
+      )}
 
       {!searching && results.length > 0 && (
         <div
@@ -186,7 +227,7 @@ export default function SearchBooks({
         </div>
       )}
 
-      {!searching && results.length === 0 && query && (
+      {!searching && !failed && searched && results.length === 0 && (
         <div
           style={{ maxWidth: "500px", textAlign: "center", marginTop: "20px" }}
         >
@@ -200,7 +241,7 @@ export default function SearchBooks({
             {t("search.notFound")}
           </p>
           <button
-            onClick={() => onGoManual(query)}
+            onClick={() => onGoManual(searched.query)}
             style={{
               background: "var(--color-primary)",
               color: "var(--color-on-primary)",
