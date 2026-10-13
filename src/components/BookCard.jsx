@@ -1,4 +1,4 @@
-import { getCoverColor, getGenderColor } from "../utils/coverColor";
+import { getGenderColor } from "../utils/coverColor";
 
 export default function BookCard({
   title,
@@ -9,6 +9,7 @@ export default function BookCard({
   rating = 0,
   favorite = false,
   status = "reading",
+  isExample = false,
   onClick,
   onToggleFavorite,
 }) {
@@ -67,6 +68,20 @@ export default function BookCard({
         >
           {statusIcon}
         </div>
+        {isExample && (
+          <span
+            className="example-badge"
+            style={{
+              position: "absolute",
+              left: "8px",
+              bottom: "8px",
+              background: "rgba(20,21,43,0.82)",
+              fontSize: "9px",
+            }}
+          >
+            Exemplo
+          </span>
+        )}
         <button
           onClick={(e) => {
             e.stopPropagation();

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { createBook } from "../services/api";
+import { notify } from "../utils/notify";
 
 export default function AddManual({ onCreated, onCancel, initialTitle = "" }) {
   const [form, setForm] = useState({
@@ -59,12 +60,16 @@ export default function AddManual({ onCreated, onCancel, initialTitle = "" }) {
       setErrors(newErrors);
       return;
     }
-    const created = await createBook({
-      ...form,
-      cover_url: form.cover_url || null,
-      synopsis: form.synopsis || null,
-    });
-    onCreated(created);
+    try {
+      const created = await createBook({
+        ...form,
+        cover_url: form.cover_url || null,
+        synopsis: form.synopsis || null,
+      });
+      onCreated(created);
+    } catch (err) {
+      notify(err.message);
+    }
   }
 
   return (

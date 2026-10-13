@@ -416,3 +416,56 @@ body {
     right: 20px;
   }
 }
+
+/* ===== Aviso rápido (toast) ===== */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 96px;
+  z-index: 200;
+  width: min(92vw, 440px);
+  translate: -50% 0;
+  padding: 14px 18px;
+  border-radius: var(--radius-md);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-error);
+  box-shadow: var(--shadow-modal);
+  color: var(--color-text-primary);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.45;
+  cursor: pointer;
+  animation: toast-in 0.25s ease-out;
+}
+
+.toast--success {
+  border-left-color: var(--color-success);
+}
+
+@media (min-width: 641px) {
+  .toast {
+    bottom: 32px;
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    translate: -50% 12px;
+  }
+}
+
+/* ===== Selo de livro de exemplo (demo) ===== */
+.example-badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  background: rgba(232, 196, 104, 0.14);
+  color: var(--color-accent);
+  border: 1px solid rgba(232, 196, 104, 0.35);
+}

@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { updateProfile, uploadProfilePhoto } from "../services/api";
+import { uploadProfilePhoto } from "../services/api";
+import { notify } from "../utils/notify";
+import { DEMO_MODE } from "../config";
 
 export default function Profile({
   books,
@@ -9,17 +11,16 @@ export default function Profile({
 }) {
   const [photoUrl, setPhotoUrl] = useState(profile?.photo_url || "");
 
-  async function handleSavePhoto() {
-    const updated = await updateProfile({ photo_url: photoUrl });
-    onProfileUpdated(updated);
-  }
-
   async function handleFileChange(e) {
     const file = e.target.files[0];
     if (!file) return;
-    const updated = await uploadProfilePhoto(file);
-    onProfileUpdated(updated);
-    setPhotoUrl(updated.photo_url);
+    try {
+      const updated = await uploadProfilePhoto(file);
+      onProfileUpdated(updated);
+      setPhotoUrl(updated.photo_url);
+    } catch (err) {
+      notify(err.message);
+    }
   }
 
   function handleLogoutClick() {
@@ -77,6 +78,19 @@ export default function Profile({
     return finished.getFullYear() === currentYear;
   }).length;
 
+  // ficha do leitor, calculada a partir da própria estante
+  const favoriteBook =
+    books
+      .filter((b) => b.favorite)
+      .sort((a, b) => (b.grade || 0) - (a.grade || 0))[0]?.title || "—";
+  const lastRead =
+    readBooks
+      .filter((b) => b.finished_date)
+      .sort((a, b) => b.finished_date.localeCompare(a.finished_date))[0]
+      ?.title || "—";
+  const toReadCount = books.filter((b) => b.reading_status === "toRead").length;
+  const favoritesCount = books.filter((b) => b.favorite).length;
+
   const stats = [
     { label: "Livros lidos", value: totalRead },
     { label: "Lendo agora", value: currentlyReadingCount },
@@ -119,18 +133,20 @@ export default function Profile({
             fontSize: "26px",
           }}
         >
-          A biblioteca de Thur
+          Minha biblioteca
         </h1>
-        <p
-          style={{
-            fontFamily: "var(--font-display)",
-            fontStyle: "italic",
-            color: "var(--color-text-secondary)",
-            marginTop: "8px",
-          }}
-        >
-          "Livro favorito: Heartstopper"
-        </p>
+        {favoriteBook !== "—" && (
+          <p
+            style={{
+              fontFamily: "var(--font-display)",
+              fontStyle: "italic",
+              color: "var(--color-text-secondary)",
+              marginTop: "8px",
+            }}
+          >
+            "Livro favorito: {favoriteBook}"
+          </p>
+        )}
 
         <div
           style={{
@@ -139,6 +155,17 @@ export default function Profile({
             textAlign: "center",
           }}
         >
+          {DEMO_MODE ? (
+            <p
+              style={{
+                fontSize: "12px",
+                color: "var(--color-text-muted)",
+                margin: 0,
+              }}
+            >
+              Na demo a foto de perfil fica desativada.
+            </p>
+          ) : (
           <label
             style={{
               background: "var(--color-primary)",
@@ -160,6 +187,7 @@ export default function Profile({
               style={{ display: "none" }}
             />
           </label>
+          )}
         </div>
       </div>
 
@@ -229,13 +257,11 @@ export default function Profile({
         >
           Ficha do leitor
         </b>
-        Personagem favorito: Charlie
+        Último livro lido: {lastRead}
         <br />
-        Série favorita: The Vampire Diaries
+        Favoritos na estante: {favoritesCount}
         <br />
-        Cores favoritas: Rosa &amp; Azul
-        <br />
-        Artista favorita: Taylor Swift
+        Na fila para ler: {toReadCount}
       </div>
 
       <div

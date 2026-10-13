@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { searchGoogleBooks } from "../services/googleBooks";
 import { createBook } from "../services/api";
+import { notify } from "../utils/notify";
 import BookResultCard from "../components/BookResultCard";
 
 const PAGE_SIZE = 10;
@@ -57,9 +58,9 @@ export default function SearchBooks({
         synopsis: book.synopsis,
         cover_url: book.cover,
       });
-      alert(`"${book.title}" adicionado à biblioteca!`);
+      notify(`"${book.title}" adicionado à biblioteca!`, "success");
     } catch (err) {
-      alert("Erro ao adicionar: " + err.message);
+      notify(err.message);
     }
   }
 

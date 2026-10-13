@@ -8,6 +8,9 @@ import SearchBooks from "./pages/SearchBooks";
 import BookDetails from "./pages/BookDetails";
 import Profile from "./pages/Profile";
 import AddManual from "./pages/AddManual";
+import Toast from "./components/Toast";
+import { notify } from "./utils/notify";
+import { APP_NAME, DEMO_MODE } from "./config";
 
 function App() {
   const [authToken, setAuthToken] = useState(() =>
@@ -89,8 +92,12 @@ function App() {
   }
 
   async function handleToggleFavorite(book) {
-    const updated = await updateBook(book.id, { favorite: !book.favorite });
-    setBooks((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
+    try {
+      const updated = await updateBook(book.id, { favorite: !book.favorite });
+      setBooks((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
+    } catch (err) {
+      notify(err.message);
+    }
   }
 
   const filteredBooks = books
@@ -131,6 +138,7 @@ function App() {
         onLogin={(token) => {
           setAuth(token);
           localStorage.setItem("authToken", token);
+          setLoading(true);
           setAuthToken(token);
         }}
       />
@@ -163,7 +171,7 @@ function App() {
           >
             <path d="M12 2a10 10 0 1 0 9.8 12.1A8 8 0 0 1 12 2Z" />
           </svg>
-          Biblioteca do Thur
+          {APP_NAME}
         </button>
 
         <div
@@ -289,7 +297,7 @@ function App() {
                 margin: 0,
               }}
             >
-              {getGreeting()}, Thur
+              {getGreeting()}
             </h1>
             <p
               style={{
@@ -376,6 +384,7 @@ function App() {
                       rating={book.grade || 0}
                       favorite={book.favorite}
                       status={book.reading_status}
+                      isExample={book.is_example}
                       onClick={() => setSelectedBook(book)}
                       onToggleFavorite={() => handleToggleFavorite(book)}
                     />
@@ -526,6 +535,7 @@ function App() {
                   rating={book.grade || 0}
                   favorite={book.favorite}
                   status={book.reading_status}
+                  isExample={book.is_example}
                   onClick={() => setSelectedBook(book)}
                   onToggleFavorite={() => handleToggleFavorite(book)}
                 />
@@ -546,7 +556,15 @@ function App() {
         }}
       >
         © 2026 Lucas de Oliveira · Built with ♥.
+        {DEMO_MODE && (
+          <>
+            <br />
+            Demo pública: os livros de exemplo são só para leitura e os seus
+            somem depois de um dia.
+          </>
+        )}
       </footer>
+      <Toast />
     </div>
   );
 }

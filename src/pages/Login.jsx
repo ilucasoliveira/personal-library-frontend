@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { APP_NAME, DEMO_MODE, DEMO_USERNAME, DEMO_PASSWORD } from "../config";
 
 export default function Login({ onLogin }) {
   const [username, setUsername] = useState("");
@@ -7,12 +8,22 @@ export default function Login({ onLogin }) {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  async function handleSubmit(e) {
+  function handleSubmit(e) {
     e.preventDefault();
+    login(username, password);
+  }
+
+  function handleDemoLogin() {
+    setUsername(DEMO_USERNAME);
+    setPassword(DEMO_PASSWORD);
+    login(DEMO_USERNAME, DEMO_PASSWORD);
+  }
+
+  async function login(user, pass) {
     setError("");
     setLoading(true);
 
-    const token = btoa(`${username}:${password}`);
+    const token = btoa(`${user}:${pass}`);
 
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/profile`, {
@@ -25,7 +36,11 @@ export default function Login({ onLogin }) {
 
       onLogin(token);
     } catch (err) {
-      setError(err.message);
+      setError(
+        err instanceof TypeError
+          ? "Não foi possível falar com o servidor. Ele pode estar acordando; tente de novo em alguns segundos."
+          : err.message,
+      );
     } finally {
       setLoading(false);
     }
@@ -71,8 +86,60 @@ export default function Login({ onLogin }) {
           >
             <path d="M12 2a10 10 0 1 0 9.8 12.1A8 8 0 0 1 12 2Z" />
           </svg>
-          Biblioteca do Thur
+          {APP_NAME}
         </h1>
+
+        {DEMO_MODE && (
+          <div
+            style={{
+              marginBottom: "24px",
+              padding: "14px 16px",
+              borderRadius: "var(--radius-sm)",
+              border: "1px dashed rgba(232, 196, 104, 0.45)",
+              background: "rgba(232, 196, 104, 0.06)",
+              fontSize: "13px",
+              lineHeight: 1.55,
+              color: "var(--color-text-secondary)",
+            }}
+          >
+            <span className="example-badge" style={{ marginBottom: "8px" }}>
+              Demo pública
+            </span>
+            <p style={{ margin: "8px 0 10px" }}>
+              Explore uma estante de exemplo e adicione seus próprios livros.
+              Os livros que você criar somem depois de um dia.
+            </p>
+            <p
+              style={{
+                margin: "0 0 12px",
+                fontFamily: "var(--font-mono)",
+                fontSize: "12px",
+                color: "var(--color-text-primary)",
+              }}
+            >
+              usuário: {DEMO_USERNAME}
+              <br />
+              senha: {DEMO_PASSWORD}
+            </p>
+            <button
+              type="button"
+              onClick={handleDemoLogin}
+              disabled={loading}
+              style={{
+                width: "100%",
+                padding: "9px",
+                background: "transparent",
+                color: "var(--color-accent)",
+                border: "1px solid rgba(232, 196, 104, 0.6)",
+                borderRadius: "var(--radius-sm)",
+                fontWeight: 600,
+                cursor: loading ? "default" : "pointer",
+              }}
+            >
+              Entrar como visitante
+            </button>
+          </div>
+        )}
 
         <input
           value={username}

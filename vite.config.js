@@ -9,9 +9,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
-        name: 'Biblioteca do Thur',
-        short_name: 'Biblioteca do Thur',
-        description: 'Biblioteca pessoal digital do Thur',
+        name: 'My Own BookShelf',
+        short_name: 'BookShelf',
+        description: 'Sua biblioteca pessoal digital',
         theme_color: '#14152B',
         background_color: '#14152B',
         display: 'standalone',

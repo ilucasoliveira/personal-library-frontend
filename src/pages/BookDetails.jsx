@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { updateBook, deleteBook } from "../services/api";
-import { getGenderColor } from "../utils/coverColor";
+import { getCoverColor, getGenderColor } from "../utils/coverColor";
+import { notify } from "../utils/notify";
 
 export default function BookDetails({ book, onBack, onUpdated, onDeleted }) {
   const [rating, setRating] = useState(book.grade || 0);
@@ -16,10 +17,23 @@ export default function BookDetails({ book, onBack, onUpdated, onDeleted }) {
     cover_url: book.cover_url || "",
   });
 
+  // salva na API; se falhar (ex.: livro de exemplo da demo), desfaz a mudança local e avisa
+  async function save(data, rollback) {
+    try {
+      const updated = await updateBook(book.id, data);
+      onUpdated(updated);
+      return true;
+    } catch (err) {
+      rollback?.();
+      notify(err.message);
+      return false;
+    }
+  }
+
   async function handleRate(newRating) {
+    const previous = rating;
     setRating(newRating);
-    const updated = await updateBook(book.id, { grade: newRating });
-    onUpdated(updated);
+    await save({ grade: newRating }, () => setRating(previous));
   }
 
   async function handleFavorite() {
@@ -27,24 +41,21 @@ export default function BookDetails({ book, onBack, onUpdated, onDeleted }) {
     setFavorite(newValue);
     setHeartPulsing(true);
     setTimeout(() => setHeartPulsing(false), 300);
-    const updated = await updateBook(book.id, { favorite: newValue });
-    onUpdated(updated);
+    await save({ favorite: newValue }, () => setFavorite(!newValue));
   }
 
   async function handleCommentBlur() {
-    const updated = await updateBook(book.id, { comment });
-    onUpdated(updated);
+    if (comment === (book.comment || "")) return;
+    await save({ comment }, () => setComment(book.comment || ""));
   }
 
   async function handleStatusChange(newStatus) {
-    const updated = await updateBook(book.id, { reading_status: newStatus });
-    onUpdated(updated);
+    await save({ reading_status: newStatus });
   }
 
   async function handleSaveEdit() {
-    const updated = await updateBook(book.id, form);
-    onUpdated(updated);
-    setEditing(false);
+    const ok = await save(form);
+    if (ok) setEditing(false);
   }
 
   async function handleDelete() {
@@ -53,8 +64,12 @@ export default function BookDetails({ book, onBack, onUpdated, onDeleted }) {
     );
     if (!confirmed) return;
 
-    await deleteBook(book.id);
-    onDeleted(book.id);
+    try {
+      await deleteBook(book.id);
+      onDeleted(book.id);
+    } catch (err) {
+      notify(err.message);
+    }
   }
 
   const inputStyle = {
@@ -96,7 +111,9 @@ export default function BookDetails({ book, onBack, onUpdated, onDeleted }) {
           style={{
             borderRadius: "var(--radius-md)",
             overflow: "hidden",
-            background: "var(--color-card)",
+            background: book.cover_url
+              ? "var(--color-card)"
+              : getCoverColor(book.title),
           }}
         >
           {book.cover_url && (
@@ -218,6 +235,23 @@ export default function BookDetails({ book, onBack, onUpdated, onDeleted }) {
               >
                 {book.author}
               </p>
+
+              {book.is_example && (
+                <p
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    flexWrap: "wrap",
+                    margin: "0 0 14px",
+                    fontSize: "13px",
+                    color: "var(--color-text-muted)",
+                  }}
+                >
+                  <span className="example-badge">Exemplo</span>
+                  Livro de exemplo da demo: só para leitura.
+                </p>
+              )}
 
               <span
                 style={{

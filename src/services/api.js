@@ -13,94 +13,97 @@ function authHeader() {
   return { Authorization: `Basic ${AUTH}` };
 }
 
-export async function getBooks() {
-  const response = await fetch(`${API_URL}/books`, {
-    headers: authHeader(),
-  });
+// mensagens em português para as respostas de erro da API
+const ERROR_MESSAGES = {
+  "Examples cannot be deleted or updated.":
+    "Este é um livro de exemplo da demo: ele não pode ser editado nem excluído. Adicione um livro seu para testar à vontade.",
+  "The profile cannot be changed in the demo.":
+    "Na demo o perfil não pode ser alterado.",
+  "Book not found.": "Livro não encontrado. Ele pode ter sido removido.",
+};
 
-  if (!response.ok) {
-    throw new Error("Erro ao buscar livros");
+async function request(path, options, fallbackMessage) {
+  let response;
+  try {
+    response = await fetch(`${API_URL}${path}`, options);
+  } catch {
+    throw new Error(
+      "Não foi possível falar com o servidor. Verifique a conexão e tente de novo.",
+    );
   }
 
-  return response.json();
+  if (!response.ok) {
+    let detail = "";
+    try {
+      detail = (await response.json()).detail;
+    } catch {
+      // resposta sem corpo JSON
+    }
+    throw new Error(ERROR_MESSAGES[detail] || fallbackMessage);
+  }
+
+  return response.status === 204 ? null : response.json();
 }
 
-export async function createBook(book) {
-  const response = await fetch(`${API_URL}/create`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...authHeader(),
+export function getBooks() {
+  return request("/books", { headers: authHeader() }, "Erro ao buscar livros");
+}
+
+export function createBook(book) {
+  return request(
+    "/create",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeader() },
+      body: JSON.stringify(book),
     },
-    body: JSON.stringify(book),
-  });
-
-  if (!response.ok) {
-    throw new Error("Erro ao adicionar livro");
-  }
-
-  return response.json();
+    "Erro ao adicionar livro",
+  );
 }
 
-export async function updateBook(id, data) {
-  const response = await fetch(`${API_URL}/update/${id}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      ...authHeader(),
+export function updateBook(id, data) {
+  return request(
+    `/update/${id}`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...authHeader() },
+      body: JSON.stringify(data),
     },
-    body: JSON.stringify(data),
-  });
-
-  if (!response.ok) {
-    throw new Error("Erro ao atualizar livro");
-  }
-
-  return response.json();
+    "Erro ao atualizar livro",
+  );
 }
 
-export async function deleteBook(id) {
-  const response = await fetch(`${API_URL}/delete/${id}`, {
-    method: "DELETE",
-    headers: authHeader(),
-  });
-
-  if (!response.ok) {
-    throw new Error("Erro ao excluir livro");
-  }
+export function deleteBook(id) {
+  return request(
+    `/delete/${id}`,
+    { method: "DELETE", headers: authHeader() },
+    "Erro ao excluir livro",
+  );
 }
 
-export async function getProfile() {
-  const response = await fetch(`${API_URL}/profile`, {
-    headers: authHeader(),
-  });
-  if (!response.ok) throw new Error("Erro ao buscar perfil");
-  return response.json();
+export function getProfile() {
+  return request("/profile", { headers: authHeader() }, "Erro ao buscar perfil");
 }
 
-export async function updateProfile(data) {
-  const response = await fetch(`${API_URL}/profile`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      ...authHeader(),
+export function updateProfile(data) {
+  return request(
+    "/profile",
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...authHeader() },
+      body: JSON.stringify(data),
     },
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) throw new Error("Erro ao atualizar perfil");
-  return response.json();
+    "Erro ao atualizar perfil",
+  );
 }
 
-export async function uploadProfilePhoto(file) {
+export function uploadProfilePhoto(file) {
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await fetch(`${API_URL}/profile/upload`, {
-    method: "POST",
-    headers: authHeader(),
-    body: formData,
-  });
-
-  if (!response.ok) throw new Error("Erro ao enviar foto");
-  return response.json();
+  return request(
+    "/profile/upload",
+    { method: "POST", headers: authHeader(), body: formData },
+    "Erro ao enviar foto",
+  );
 }
