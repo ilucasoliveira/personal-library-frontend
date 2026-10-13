@@ -2,6 +2,8 @@
 
 A React interface for a personal digital library, built with a fully custom design system — no UI library, every component styled from scratch.
 
+**Live demo:** [my-own-bookshelf.vercel.app](https://my-own-bookshelf.vercel.app) (user `visitante`, password `biblioteca2026`)
+
 This is the frontend counterpart to [personal-library-api](https://github.com/ilucasoliveira/personal-library-api), consuming its REST endpoints to manage books, reading status, ratings, and a personal profile.
 
 ---
@@ -98,7 +100,7 @@ Deployed on **[Vercel](https://vercel.com)**, consuming the [personal-library-ap
 
 ### 🎭 Live demo
 
-**Try it:** DEMO_URL_HERE
+**Try it:** [my-own-bookshelf.vercel.app](https://my-own-bookshelf.vercel.app)
 
 | | |
 |---|---|
