@@ -1,413 +1,414 @@
-import { useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { updateBook, deleteBook } from "../services/api";
-import { getCoverColor, getGenderColor } from "../utils/coverColor";
 import { notify } from "../utils/notify";
 import { useI18n } from "../i18n";
+import Cover from "../components/ui/Cover";
+import StatusIcon from "../components/ui/StatusIcon";
+import Button from "../components/ui/Button";
+import Dialog from "../components/ui/Dialog";
+import MenuButton from "../components/ui/MenuButton";
 
+const STATUSES = ["toRead", "reading", "read"];
+const COMMENT_MAX = 300;
+
+function formatDate(iso, lang) {
+  if (!iso) return "";
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Intl.DateTimeFormat(lang === "pt" ? "pt-BR" : "en", { dateStyle: "long" }).format(
+    new Date(y, m - 1, d),
+  );
+}
+
+// Página do livro: capa e título; os 3 controles do dia a dia (status, nota, favorito);
+// a nota pessoal; a sinopse; a ficha. Editar e excluir ficam no menu "⋯".
 export default function BookDetails({ book, onBack, onUpdated, onDeleted }) {
-  const { t } = useI18n();
-  const [rating, setRating] = useState(book.grade || 0);
-  const [favorite, setFavorite] = useState(book.favorite);
-  const [comment, setComment] = useState(book.comment || "");
+  const { t, lang } = useI18n();
+  const readOnly = book.is_example;
   const [editing, setEditing] = useState(false);
-  const [heartPulsing, setHeartPulsing] = useState(false);
-  const [form, setForm] = useState({
-    title: book.title,
-    author: book.author,
-    gender: book.gender,
-    synopsis: book.synopsis || "",
-    cover_url: book.cover_url || "",
-  });
+  const [confirming, setConfirming] = useState(false);
 
-  // salva na API; se falhar (ex.: livro de exemplo da demo), desfaz a mudança local e avisa
-  async function save(data, rollback) {
+  // salva na API; se falhar (ex.: livro de exemplo da demo), avisa e devolve false
+  async function save(data) {
     try {
-      const updated = await updateBook(book.id, data);
-      onUpdated(updated);
+      onUpdated(await updateBook(book.id, data));
       return true;
     } catch (err) {
-      rollback?.();
       notify(err.message);
       return false;
     }
   }
 
-  async function handleRate(newRating) {
-    const previous = rating;
-    setRating(newRating);
-    await save({ grade: newRating }, () => setRating(previous));
-  }
-
-  async function handleFavorite() {
-    const newValue = !favorite;
-    setFavorite(newValue);
-    setHeartPulsing(true);
-    setTimeout(() => setHeartPulsing(false), 300);
-    await save({ favorite: newValue }, () => setFavorite(!newValue));
-  }
-
-  async function handleCommentBlur() {
-    if (comment === (book.comment || "")) return;
-    await save({ comment }, () => setComment(book.comment || ""));
-  }
-
-  async function handleStatusChange(newStatus) {
-    await save({ reading_status: newStatus });
-  }
-
-  async function handleSaveEdit() {
-    const ok = await save(form);
-    if (ok) setEditing(false);
-  }
-
-  async function handleDelete() {
-    const confirmed = window.confirm(t("details.confirmDelete", { title: book.title }));
-    if (!confirmed) return;
-
-    try {
-      await deleteBook(book.id);
-      onDeleted(book.id);
-    } catch (err) {
-      notify(err.message);
-    }
-  }
-
-  const inputStyle = {
-    width: "100%",
-    background: "var(--color-card)",
-    border: "1px solid var(--color-border-strong)",
-    borderRadius: "var(--radius-sm)",
-    padding: "8px 12px",
-    color: "var(--color-text-primary)",
-    fontFamily: "var(--font-ui)",
-    marginBottom: "10px",
-  };
-
   return (
-    <div
-      className="page-padding"
-      style={{
-        background: "var(--color-background)",
-        minHeight: "100vh",
-        fontFamily: "var(--font-ui)",
-      }}
-    >
-      <button
-        onClick={onBack}
-        style={{
-          marginBottom: "20px",
-          background: "none",
-          border: "none",
-          color: "var(--color-text-secondary)",
-          cursor: "pointer",
-        }}
-      >
+    <div className="page book-page">
+      <button type="button" className="btn btn--text book-page__back" onClick={onBack}>
         {t("common.back")}
       </button>
 
-      <div className="details-layout">
-        <div
-          className="details-cover"
-          style={{
-            borderRadius: "var(--radius-md)",
-            overflow: "hidden",
-            background: book.cover_url
-              ? "var(--color-card)"
-              : getCoverColor(book.title),
-          }}
-        >
-          {book.cover_url && (
-            <img
-              src={book.cover_url}
-              alt=""
-              style={{ width: "100%", height: "100%", objectFit: "cover" }}
-            />
-          )}
-        </div>
+      <div className="book-page__layout">
+        <Cover url={book.cover_url} title={book.title} size="large" className="book-page__cover" />
 
-        <div style={{ flex: 1 }}>
+        <div className="book-page__main">
           {editing ? (
-            <>
-              <input
-                style={{
-                  ...inputStyle,
-                  fontFamily: "var(--font-display)",
-                  fontSize: "20px",
-                }}
-                value={form.title}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
-                placeholder={t("details.titlePh")}
-              />
-              <input
-                style={inputStyle}
-                value={form.author}
-                onChange={(e) => setForm({ ...form, author: e.target.value })}
-                placeholder={t("details.authorPh")}
-              />
-              <input
-                style={inputStyle}
-                value={form.gender}
-                onChange={(e) => setForm({ ...form, gender: e.target.value })}
-                placeholder={t("details.genderPh")}
-              />
-              <input
-                style={inputStyle}
-                value={form.cover_url}
-                onChange={(e) =>
-                  setForm({ ...form, cover_url: e.target.value })
-                }
-                placeholder={t("details.coverPh")}
-              />
-              <textarea
-                style={{ ...inputStyle, fontFamily: "var(--font-reading)" }}
-                rows={5}
-                value={form.synopsis}
-                onChange={(e) => setForm({ ...form, synopsis: e.target.value })}
-                placeholder={t("details.synopsisPh")}
-              />
-              <div style={{ display: "flex", gap: "8px" }}>
-                <button
-                  onClick={handleSaveEdit}
-                  style={{
-                    background: "var(--color-primary)",
-                    color: "var(--color-on-primary)",
-                    border: "none",
-                    borderRadius: "var(--radius-sm)",
-                    padding: "8px 16px",
-                    cursor: "pointer",
-                    fontWeight: 600,
-                  }}
-                >
-                  {t("common.save")}
-                </button>
-                <button
-                  onClick={() => setEditing(false)}
-                  style={{
-                    background: "none",
-                    border: "1px solid var(--color-border)",
-                    color: "var(--color-text-secondary)",
-                    borderRadius: "var(--radius-sm)",
-                    padding: "8px 16px",
-                    cursor: "pointer",
-                  }}
-                >
-                  {t("common.cancel")}
-                </button>
-              </div>
-            </>
+            <EditForm book={book} onCancel={() => setEditing(false)} onSave={save} onDone={() => setEditing(false)} />
           ) : (
             <>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                }}
-              >
-                <h1
-                  style={{
-                    fontFamily: "var(--font-display)",
-                    color: "var(--color-text-primary)",
-                    margin: 0,
-                    fontSize: "28px",
-                  }}
-                >
-                  {book.title}
-                </h1>
-                <button
-                  onClick={() => setEditing(true)}
-                  aria-label={t("details.edit")}
-                  title={t("details.edit")}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "var(--color-text-muted)",
-                    cursor: "pointer",
-                    fontSize: "16px",
-                  }}
-                >
-                  ✎
-                </button>
-              </div>
-              <p
-                style={{
-                  color: "var(--color-text-secondary)",
-                  margin: "4px 0 12px",
-                }}
-              >
-                {book.author}
-              </p>
+              <header className="book-page__header">
+                <div className="book-page__heading">
+                  {book.is_example && <span className="tag">{t("card.example")}</span>}
+                  <h1 className="book-page__title">{book.title}</h1>
+                  <p className="book-page__author">{book.author}</p>
+                </div>
+                {!readOnly && (
+                  <MenuButton
+                    label={t("details.actions")}
+                    items={[
+                      { label: t("details.editData"), onSelect: () => setEditing(true) },
+                      { label: t("details.delete"), danger: true, onSelect: () => setConfirming(true) },
+                    ]}
+                  />
+                )}
+              </header>
 
-              {book.is_example && (
-                <p
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "10px",
-                    flexWrap: "wrap",
-                    margin: "0 0 14px",
-                    fontSize: "13px",
-                    color: "var(--color-text-muted)",
-                  }}
-                >
-                  <span className="example-badge">{t("card.example")}</span>
-                  {t("details.exampleNote")}
-                </p>
-              )}
+              {readOnly && <p className="book-page__note">{t("details.exampleNote")}</p>}
 
-              <span
-                style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: "12px",
-                  textTransform: "uppercase",
-                  padding: "5px 12px",
-                  borderRadius: "var(--radius-pill)",
-                  background: getGenderColor(book.gender).bg,
-                  color: getGenderColor(book.gender).text,
-                }}
-              >
-                {book.gender}
-              </span>
+              <Controls book={book} readOnly={readOnly} onSave={save} />
+              <PersonalNote book={book} readOnly={readOnly} onSave={save} />
+              {book.synopsis && <Synopsis text={book.synopsis} />}
 
-              {book.synopsis && (
-                <p
-                  style={{
-                    fontFamily: "var(--font-reading)",
-                    color: "var(--color-text-secondary)",
-                    lineHeight: 1.6,
-                    marginTop: "20px",
-                  }}
-                >
-                  {book.synopsis}
-                </p>
-              )}
+              <section className="book-section" aria-labelledby="record-title">
+                <h2 id="record-title" className="label">
+                  {t("details.record")}
+                </h2>
+                <dl className="record">
+                  <div>
+                    <dt>{t("details.genre")}</dt>
+                    <dd>{book.gender}</dd>
+                  </div>
+                  {book.add_date && (
+                    <div>
+                      <dt>{t("details.addedOn")}</dt>
+                      <dd>{formatDate(book.add_date, lang)}</dd>
+                    </div>
+                  )}
+                  {book.reading_status === "read" && book.finished_date && (
+                    <div>
+                      <dt>{t("details.finishedOn")}</dt>
+                      <dd>{formatDate(book.finished_date, lang)}</dd>
+                    </div>
+                  )}
+                </dl>
+              </section>
             </>
           )}
-
-          <div style={{ margin: "16px 0" }}>
-            {[1, 2, 3, 4, 5].map((i) => (
-              <span
-                key={i}
-                className="star-item"
-                onClick={() => handleRate(i)}
-                style={{
-                  cursor: "pointer",
-                  fontSize: "22px",
-                  color:
-                    i <= rating
-                      ? "var(--color-star-filled)"
-                      : "var(--color-star-empty)",
-                }}
-              >
-                ★
-              </span>
-            ))}
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              gap: "8px",
-              margin: "16px 0",
-              alignItems: "center",
-              flexWrap: "wrap",
-            }}
-          >
-            {[
-              { key: "toRead", label: t("status.toRead") },
-              { key: "reading", label: t("status.reading") },
-              { key: "read", label: t("status.read") },
-            ].map((opt) => (
-              <button
-                key={opt.key}
-                className="status-pill"
-                onClick={() => handleStatusChange(opt.key)}
-                style={{
-                  background:
-                    book.reading_status === opt.key
-                      ? "var(--color-primary)"
-                      : "var(--color-card)",
-                  color:
-                    book.reading_status === opt.key
-                      ? "var(--color-on-primary)"
-                      : "var(--color-text-secondary)",
-                  border: "1px solid var(--color-border)",
-                  borderRadius: "var(--radius-pill)",
-                  padding: "6px 12px",
-                  fontSize: "12px",
-                  cursor: "pointer",
-                }}
-              >
-                {opt.label}
-              </button>
-            ))}
-
-            <button
-              onClick={handleFavorite}
-              aria-label={favorite ? t("card.removeFavorite") : t("card.addFavorite")}
-              className={heartPulsing ? "heart-pulse" : ""}
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                fontSize: "26px",
-                color: favorite
-                  ? "var(--color-favorite)"
-                  : "var(--color-text-muted)",
-                marginLeft: "4px",
-              }}
-            >
-              {favorite ? "♥" : "♡"}
-            </button>
-          </div>
-
-          <div style={{ marginTop: "20px" }}>
-            <label
-              style={{
-                display: "block",
-                fontSize: "12px",
-                color: "var(--color-text-secondary)",
-                marginBottom: "6px",
-              }}
-            >
-              {t("details.comment")}
-            </label>
-            <textarea
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              onBlur={handleCommentBlur}
-              rows={3}
-              style={{
-                width: "100%",
-                background: "var(--color-card)",
-                border: "1px solid var(--color-border-strong)",
-                borderRadius: "var(--radius-sm)",
-                padding: "10px",
-                color: "var(--color-text-primary)",
-                fontFamily: "var(--font-ui)",
-              }}
-              placeholder={t("details.commentPh")}
-            />
-          </div>
-
-          <button
-            onClick={handleDelete}
-            style={{
-              marginTop: "20px",
-              marginBottom: "16px",
-              display: "block",
-              background: "none",
-              border: "1px solid var(--color-error)",
-              color: "var(--color-error)",
-              borderRadius: "var(--radius-sm)",
-              padding: "8px 16px",
-              cursor: "pointer",
-            }}
-          >
-            {t("details.delete")}
-          </button>
         </div>
       </div>
+
+      <DeleteDialog
+        open={confirming}
+        book={book}
+        onClose={() => setConfirming(false)}
+        onDeleted={() => {
+          setConfirming(false);
+          notify(t("details.deleted", { title: book.title }), "success");
+          onDeleted(book.id);
+        }}
+      />
     </div>
+  );
+}
+
+// status, nota e favorito: mudam na hora e desfazem se a API recusar
+function Controls({ book, readOnly, onSave }) {
+  const { t } = useI18n();
+  const [status, setStatus] = useState(book.reading_status);
+  const [rating, setRating] = useState(book.grade || 0);
+  const [hover, setHover] = useState(0);
+  const [favorite, setFavorite] = useState(book.favorite);
+
+  async function change(setter, previous, next, data) {
+    setter(next);
+    if (!(await onSave(data))) setter(previous);
+  }
+
+  const shown = hover || rating;
+
+  return (
+    <div className="book-controls">
+      <div className="book-controls__row">
+        <span className="book-controls__label" id="status-label">
+          {t("details.status")}
+        </span>
+        <div className="seg book-status" role="group" aria-labelledby="status-label">
+          {STATUSES.map((key) => (
+            <button
+              key={key}
+              type="button"
+              aria-pressed={status === key}
+              disabled={readOnly}
+              onClick={() => status !== key && change(setStatus, status, key, { reading_status: key })}
+            >
+              <StatusIcon status={key} />
+              {t(`statusShort.${key}`)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="book-controls__row">
+        <span className="book-controls__label" id="rating-label">
+          {t("details.rating")}
+        </span>
+        <div className="rating" role="group" aria-labelledby="rating-label" onMouseLeave={() => setHover(0)}>
+          {[1, 2, 3, 4, 5].map((n) => (
+            <button
+              key={n}
+              type="button"
+              className={`rating__star${n <= shown ? " is-on" : ""}`}
+              aria-label={t("details.rateN", { n })}
+              aria-pressed={n === rating}
+              disabled={readOnly}
+              onMouseEnter={() => !readOnly && setHover(n)}
+              onClick={() => n !== rating && change(setRating, rating, n, { grade: n })}
+            >
+              <span aria-hidden="true">★</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="book-controls__row">
+        <span className="book-controls__label">{t("details.favoriteLabel")}</span>
+        <button
+          type="button"
+          className={`btn btn--secondary book-favorite${favorite ? " is-on" : ""}`}
+          aria-pressed={favorite}
+          disabled={readOnly}
+          onClick={() => change(setFavorite, favorite, !favorite, { favorite: !favorite })}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M12 20.5s-7.5-4.6-7.5-10.1A4.4 4.4 0 0 1 12 7.6a4.4 4.4 0 0 1 7.5 2.8c0 5.5-7.5 10.1-7.5 10.1Z" />
+          </svg>
+          {favorite ? t("details.isFavorite") : t("details.makeFavorite")}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// comentário: salva sozinho 1 s depois de parar de digitar ou ao sair do campo
+function PersonalNote({ book, readOnly, onSave }) {
+  const { t } = useI18n();
+  const [text, setText] = useState(book.comment || "");
+  const [state, setState] = useState("idle"); // idle | saving | saved | error
+  const saved = useRef(book.comment || "");
+
+  async function flush(value) {
+    if (value === saved.current) return;
+    setState("saving");
+    if (await onSave({ comment: value })) {
+      saved.current = value;
+      setState("saved");
+    } else {
+      setState("error");
+    }
+  }
+
+  useEffect(() => {
+    if (text === saved.current) return;
+    const timer = setTimeout(() => flush(text), 1000);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [text]);
+
+  return (
+    <section className="book-section">
+      <div className="book-section__head">
+        <label htmlFor="personal-note" className="label">
+          {t("details.comment")}
+        </label>
+        <span className="book-note__state" aria-live="polite">
+          {state === "saving" ? t("details.saving") : state === "saved" ? t("details.saved") : ""}
+        </span>
+      </div>
+      <textarea
+        id="personal-note"
+        className="field-input book-note"
+        rows={4}
+        maxLength={COMMENT_MAX}
+        value={text}
+        readOnly={readOnly}
+        aria-describedby="personal-note-count"
+        placeholder={t("details.commentPh")}
+        onChange={(e) => {
+          setText(e.target.value);
+          setState("idle");
+        }}
+        onBlur={() => flush(text)}
+      />
+      <span id="personal-note-count" className="book-note__count">
+        {text.length}/{COMMENT_MAX}
+      </span>
+    </section>
+  );
+}
+
+// sinopse recolhida em 5 linhas; "Ler mais" só aparece se o texto passar disso
+function Synopsis({ text }) {
+  const { t } = useI18n();
+  const [open, setOpen] = useState(false);
+  const [overflows, setOverflows] = useState(false);
+  const ref = useRef(null);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (el && !open) setOverflows(el.scrollHeight > el.clientHeight + 1);
+  }, [text, open]);
+
+  return (
+    <section className="book-section" aria-labelledby="synopsis-title">
+      <h2 id="synopsis-title" className="label">
+        {t("details.synopsis")}
+      </h2>
+      <p ref={ref} id="synopsis-text" className={`book-synopsis${open ? " is-open" : ""}`}>
+        {text}
+      </p>
+      {(overflows || open) && (
+        <button
+          type="button"
+          className="btn btn--text"
+          aria-expanded={open}
+          aria-controls="synopsis-text"
+          onClick={() => setOpen(!open)}
+        >
+          {open ? t("details.less") : t("details.more")}
+        </button>
+      )}
+    </section>
+  );
+}
+
+function EditForm({ book, onCancel, onSave, onDone }) {
+  const { t } = useI18n();
+  const [form, setForm] = useState({
+    title: book.title,
+    author: book.author,
+    gender: book.gender,
+    cover_url: book.cover_url || "",
+    synopsis: book.synopsis || "",
+  });
+  const [errors, setErrors] = useState({});
+  const [busy, setBusy] = useState(false);
+  const first = useRef(null);
+
+  useEffect(() => first.current?.focus(), []);
+
+  async function submit(event) {
+    event.preventDefault();
+    const found = {
+      title: !form.title.trim(),
+      author: !form.author.trim(),
+      gender: !form.gender.trim(),
+    };
+    setErrors(found);
+    const firstError = Object.keys(found).find((key) => found[key]);
+    if (firstError) {
+      document.getElementById(`edit-${firstError}`)?.focus();
+      return;
+    }
+    setBusy(true);
+    const ok = await onSave({
+      title: form.title.trim(),
+      author: form.author.trim(),
+      gender: form.gender.trim(),
+      cover_url: form.cover_url.trim(),
+      synopsis: form.synopsis.trim(),
+    });
+    setBusy(false);
+    if (ok) onDone();
+  }
+
+  function field(key, label, { required = false, type = "text", multiline = false } = {}) {
+    const Input = multiline ? "textarea" : "input";
+    return (
+      <div className="form-row">
+        <label htmlFor={`edit-${key}`} className="form-row__label">
+          {label}
+        </label>
+        <Input
+          ref={key === "title" ? first : undefined}
+          id={`edit-${key}`}
+          type={multiline ? undefined : type}
+          rows={multiline ? 6 : undefined}
+          className={`field-input${multiline ? " book-note" : ""}`}
+          value={form[key]}
+          required={required}
+          aria-invalid={errors[key] || undefined}
+          aria-describedby={errors[key] ? `edit-${key}-error` : undefined}
+          onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+        />
+        {errors[key] && (
+          <p id={`edit-${key}-error`} className="form-row__error">
+            {t(`manual.${key === "gender" ? "gender" : key}Error`)}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <form className="edit-form" onSubmit={submit} noValidate>
+      <h1 className="book-page__title">{t("details.editData")}</h1>
+      {field("title", t("manual.name"), { required: true })}
+      {field("author", t("manual.author"), { required: true })}
+      {field("gender", t("manual.gender"), { required: true })}
+      {field("cover_url", t("manual.cover"), { type: "url" })}
+      {field("synopsis", t("manual.synopsis"), { multiline: true })}
+      <div className="edit-form__actions">
+        <Button variant="secondary" onClick={onCancel}>
+          {t("common.cancel")}
+        </Button>
+        <Button type="submit" busy={busy} busyText={t("details.saving")}>
+          {t("common.save")}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+function DeleteDialog({ open, book, onClose, onDeleted }) {
+  const { t } = useI18n();
+  const cancel = useRef(null);
+  const [busy, setBusy] = useState(false);
+
+  async function confirm() {
+    setBusy(true);
+    try {
+      await deleteBook(book.id);
+      onDeleted();
+    } catch (err) {
+      notify(err.message);
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Dialog
+      open={open}
+      title={t("details.deleteTitle")}
+      onClose={onClose}
+      initialFocus={cancel}
+      actions={
+        <>
+          <button ref={cancel} type="button" className="btn btn--secondary" onClick={onClose}>
+            {t("common.cancel")}
+          </button>
+          <Button variant="danger-solid" busy={busy} busyText={t("details.deleting")} onClick={confirm}>
+            {t("details.deleteConfirm")}
+          </Button>
+        </>
+      }
+    >
+      <p>{t("details.deleteText", { title: book.title })}</p>
+    </Dialog>
   );
 }
