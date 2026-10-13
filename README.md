@@ -1,4 +1,4 @@
-# 📚 Personal Library — Frontend
+# 📚 My Own BookShelf · Personal Library Frontend
 
 A React interface for a personal digital library, built with a fully custom design system — no UI library, every component styled from scratch.
 
@@ -37,6 +37,7 @@ This is the frontend counterpart to [personal-library-api](https://github.com/il
 - Installable as a Progressive Web App (custom icons, standalone display, works on iOS/Android home screens)
 - Fully responsive layout (mobile bottom nav + floating action button, desktop top nav)
 - Custom design system built around CSS variables — no Tailwind, no component library
+- **Demo mode** (`VITE_DEMO_MODE=true`): the login screen shows the public credentials and a "log in as visitor" button, example books carry an "Example" badge, and API errors (such as editing an example book) appear as friendly messages instead of failing silently
 
 ---
 
@@ -55,6 +56,8 @@ src/
 │   ├── BookDetails.jsx        # Book detail/edit view
 │   ├── AddManual.jsx          # Manual book entry form
 │   └── Profile.jsx            # Profile + stats
+├── components/Toast.jsx       # Quick on-screen messages (success and errors)
+├── config.js                 # App name and demo mode settings
 ├── services/
 │   ├── api.js                  # Backend REST client (runtime-provided auth token)
 │   └── googleBooks.js          # Google Books API client
@@ -79,12 +82,13 @@ npm install
 # Set up environment variables
 cp .env.example .env
 # then fill in VITE_API_URL and VITE_GOOGLE_BOOKS_KEY
+# (and VITE_DEMO_MODE=true for a demo deployment)
 
 # Run the development server
 npm run dev
 ```
 
-Login credentials are entered at runtime through the login screen — they match the backend's `MEU_USUARIO`/`MINHA_SENHA` values and are never stored in this project's source or environment files.
+Login credentials are entered at runtime through the login screen. They match the backend's `APP_USERNAME`/`APP_PASSWORD` values and are never stored in this project's source. The only exception is the public demo, whose credentials are public on purpose.
 
 ---
 
@@ -92,9 +96,18 @@ Login credentials are entered at runtime through the login screen — they match
 
 Deployed on **[Vercel](https://vercel.com)**, consuming the [personal-library-api](https://github.com/ilucasoliveira/personal-library-api) backend hosted on Render.
 
-**Live demo:** [personal-library-frontend-snowy.vercel.app](https://personal-library-frontend-snowy.vercel.app)
+### 🎭 Live demo
 
-> This is a private, password-protected personal library — the live demo requires valid login credentials to view any data. The link is shared to demonstrate the working deployment and UI; feel free to explore the source code above to see the full implementation.
+**Try it:** DEMO_URL_HERE
+
+| | |
+|---|---|
+| Username | `visitante` |
+| Password | `biblioteca2026` |
+
+Or just click **"Entrar como visitante"** on the login screen. The demo is a separate deployment (its own API and database), so you can explore a shelf of example books and add, rate and delete your own. Example books are read-only and the books you add are removed after a day.
+
+The main deployment is a private, password-protected personal library.
 
 ---
 
