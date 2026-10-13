@@ -78,8 +78,6 @@ function App() {
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  // aba, filtro e ordem da estante: ficam aqui para sobreviver à ida até um livro
-  const [shelf, setShelf] = useState({ activeTab: "all", librarySearch: "", sortBy: "title-asc" });
   // posição da estante ao abrir um livro, para voltar ao mesmo ponto
   const libraryScroll = useRef(null);
   const main = useRef(null);
@@ -116,17 +114,18 @@ function App() {
 
   const userId = user?.id;
 
-  // a lista vem uma vez por conta; as telas atualizam a cópia local
-  useEffect(() => {
-    if (!userId) return;
+  function loadBooks() {
     setLoading(true);
+    setError(null);
     getBooks()
-      .then((list) => {
-        setBooks(list);
-        setError(null);
-      })
+      .then(setBooks)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
+  }
+
+  // a lista vem uma vez por conta; as telas atualizam a cópia local
+  useEffect(() => {
+    if (userId) loadBooks();
   }, [userId]);
 
   // rota que não existe: estante
@@ -149,7 +148,8 @@ function App() {
     } else {
       main.current?.focus({ preventScroll: true });
     }
-  }, [route.href, route.name]);
+    // só a troca de tela conta: busca, aba e ordem mudam o ?... sem mexer na rolagem nem no foco
+  }, [route.path, route.name]);
 
   const selectedBook = route.name === "book" ? books.find((b) => b.id === route.id) : null;
 
@@ -159,10 +159,6 @@ function App() {
     const page = selectedBook ? selectedBook.title : key ? t(key) : null;
     document.title = page ? `${page} · ${APP_NAME}` : APP_NAME;
   }, [route.name, selectedBook, t]);
-
-  function updateShelf(change) {
-    setShelf((prev) => ({ ...prev, ...change }));
-  }
 
   function handleUpdated(updatedBook) {
     setBooks((prev) => prev.map((b) => (b.id === updatedBook.id ? updatedBook : b)));
@@ -195,11 +191,13 @@ function App() {
     navigate("/", { replace: true });
   }
 
+  // muda na hora; se a API recusar (ex.: livro de exemplo), desfaz e avisa o motivo
   async function handleToggleFavorite(book) {
+    handleUpdated({ ...book, favorite: !book.favorite });
     try {
-      const updated = await updateBook(book.id, { favorite: !book.favorite });
-      handleUpdated(updated);
+      handleUpdated(await updateBook(book.id, { favorite: !book.favorite }));
     } catch (err) {
+      handleUpdated(book);
       notify(err.message);
     }
   }
@@ -323,12 +321,11 @@ function App() {
   } else {
     page = (
       <Library
-        user={user}
         books={books}
         loading={loading}
         error={error}
-        shelf={shelf}
-        onShelfChange={updateShelf}
+        query={route.query}
+        onRetry={loadBooks}
         onOpenBook={() => {
           libraryScroll.current = window.scrollY;
         }}
@@ -360,13 +357,10 @@ function App() {
       </main>
 
       <footer className="app-footer">
-        {t("app.footer")}
-        {user.is_visitor && (
-          <>
-            <br />
-            {t("app.visitorFooter")}
-          </>
-        )}
+        <p>
+          {t("app.footer")} · {t("app.credits")}
+        </p>
+        {user.is_visitor && <p>{t("app.visitorFooter")}</p>}
       </footer>
 
       <nav aria-label={t("nav.main")} className="bottom-nav">

@@ -1,239 +1,309 @@
-import { useState } from "react";
-import BookCard from "../components/BookCard";
-import { getCoverColor } from "../utils/coverColor";
-import { navigate } from "../router";
+import { useEffect, useState } from "react";
+import BookCard, { FavoriteButton } from "../components/BookCard";
 import { Link } from "../components/Link";
+import Cover from "../components/ui/Cover";
+import StatusIcon from "../components/ui/StatusIcon";
+import Stars from "../components/ui/Stars";
+import SearchField from "../components/ui/SearchField";
+import SelectField from "../components/ui/SelectField";
+import Button from "../components/ui/Button";
+import { navigate } from "../router";
 import { useI18n } from "../i18n";
 
-const SORTERS = {
-  "title-asc": (a, b) => a.title.localeCompare(b.title),
-  "title-desc": (a, b) => b.title.localeCompare(a.title),
-  author: (a, b) => a.author.localeCompare(b.author),
-  gender: (a, b) => a.gender.localeCompare(b.gender),
+// Aba, ordem e visão ficam na URL (?aba=lidos&ordem=autor&vista=lista&q=duna),
+// para o Voltar e o recarregar devolverem a mesma estante. Aba, ordem e visão
+// também ficam no navegador e voltam na próxima visita.
+const TABS = [
+  { slug: "todos", key: "all", test: () => true },
+  { slug: "lendo", key: "reading", test: (b) => b.reading_status === "reading" },
+  { slug: "quero-ler", key: "toRead", test: (b) => b.reading_status === "toRead" },
+  { slug: "lidos", key: "read", test: (b) => b.reading_status === "read" },
+  { slug: "favoritos", key: "favorites", test: (b) => b.favorite },
+];
+
+const byText = (field) => (a, b) => a[field].localeCompare(b[field], undefined, { sensitivity: "base" });
+const SORTS = {
+  titulo: { label: "sort.titleAsc", compare: byText("title") },
+  "titulo-desc": { label: "sort.titleDesc", compare: (a, b) => byText("title")(b, a) },
+  autor: { label: "sort.author", compare: byText("author") },
+  genero: { label: "sort.gender", compare: byText("gender") },
+  recentes: {
+    label: "sort.recent",
+    compare: (a, b) => (b.add_date || "").localeCompare(a.add_date || "") || b.id - a.id,
+  },
 };
 
-const FILTERS = {
-  favorites: (book) => book.favorite,
-  toRead: (book) => book.reading_status === "toRead",
-  read: (book) => book.reading_status === "read",
-  all: () => true,
-};
+const DEFAULTS = { aba: "todos", ordem: "titulo", vista: "grade" };
+const PREFS_KEY = "shelfPrefs";
 
-function greetingKey() {
-  const hour = new Date().getHours();
-  if (hour >= 6 && hour < 12) return "greeting.morning";
-  if (hour >= 12 && hour < 18) return "greeting.afternoon";
-  return "greeting.evening";
+function readPrefs() {
+  try {
+    return JSON.parse(localStorage.getItem(PREFS_KEY)) || {};
+  } catch {
+    return {};
+  }
 }
 
-// shelf: aba, filtro e ordem (ficam no App para sobreviver à ida até um livro e à volta)
-export default function Library({
-  user,
-  books,
-  loading,
-  error,
-  shelf,
-  onShelfChange,
-  onOpenBook,
-  onToggleFavorite,
-}) {
-  const { t } = useI18n();
-  const [quickSearch, setQuickSearch] = useState("");
-  const { activeTab, librarySearch, sortBy } = shelf;
+function savePrefs(prefs) {
+  try {
+    localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+  } catch {
+    // sem localStorage a escolha vale só pela URL
+  }
+}
 
-  const firstName = user.is_visitor ? "" : user.name.split(" ")[0];
-  const greeting = firstName ? `${t(greetingKey())}, ${firstName}` : t(greetingKey());
+function pick(value, allowed, fallback) {
+  return allowed.includes(value) ? value : fallback;
+}
 
-  function handleQuickSearch(e) {
-    e.preventDefault();
-    const q = quickSearch.trim();
-    if (!q) return;
-    navigate(`/adicionar?q=${encodeURIComponent(q)}`);
+// "2026-10-13" vira data local (new Date("2026-10-13") seria meia-noite UTC, um dia antes no Brasil)
+function formatDate(iso, lang) {
+  if (!iso) return "";
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Intl.DateTimeFormat(lang === "pt" ? "pt-BR" : "en", { dateStyle: "short" }).format(
+    new Date(y, m - 1, d),
+  );
+}
+
+export default function Library({ books, loading, error, query, onRetry, onOpenBook, onToggleFavorite }) {
+  const { t, lang } = useI18n();
+  const prefs = readPrefs();
+
+  const aba = pick(query.get("aba") ?? prefs.aba, TABS.map((x) => x.slug), DEFAULTS.aba);
+  const ordem = pick(query.get("ordem") ?? prefs.ordem, Object.keys(SORTS), DEFAULTS.ordem);
+  const vista = pick(query.get("vista") ?? prefs.vista, ["grade", "lista"], DEFAULTS.vista);
+  const q = query.get("q") || "";
+
+  // o campo responde na hora; a filtragem (e a URL) esperam 150 ms sem digitar
+  const [term, setTerm] = useState(q);
+
+  function update(change) {
+    const next = { aba, ordem, vista, q, ...change };
+    savePrefs({ aba: next.aba, ordem: next.ordem, vista: next.vista });
+    const params = new URLSearchParams();
+    for (const key of ["aba", "ordem", "vista"]) {
+      if (next[key] !== DEFAULTS[key]) params.set(key, next[key]);
+    }
+    if (next.q.trim()) params.set("q", next.q.trim());
+    const search = params.toString();
+    navigate(search ? `/?${search}` : "/", { replace: true });
   }
 
-  const term = librarySearch.trim().toLowerCase();
-  const filteredBooks = books
-    .filter(FILTERS[activeTab])
-    .filter(
-      (book) =>
-        !term ||
-        book.title.toLowerCase().includes(term) ||
-        book.author.toLowerCase().includes(term),
-    )
-    .sort(SORTERS[sortBy]);
+  useEffect(() => {
+    if (term.trim() === q) return;
+    const timer = setTimeout(() => update({ q: term }), 150);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [term]);
 
-  const currentlyReading = books.filter((b) => b.reading_status === "reading");
+  // servidor do Render dormindo: depois de 4 s avisa que está acordando
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    if (!loading) return;
+    const timer = setTimeout(() => setSlow(true), 4000);
+    return () => clearTimeout(timer);
+  }, [loading]);
 
-  const tabs = [
-    { key: "favorites", label: t("tabs.favorites") },
-    { key: "toRead", label: t("tabs.toRead") },
-    { key: "read", label: t("tabs.read") },
-    { key: "all", label: t("tabs.all") },
-  ];
+  const needle = q.toLowerCase();
+  const matches = needle
+    ? books.filter(
+        (b) => b.title.toLowerCase().includes(needle) || b.author.toLowerCase().includes(needle),
+      )
+    : books;
+  const tab = TABS.find((x) => x.slug === aba);
+  const visible = matches.filter(tab.test).sort(SORTS[ordem].compare);
+  const reading = books.filter((b) => b.reading_status === "reading");
 
-  function card(book) {
-    return (
-      <BookCard
-        title={book.title}
-        author={book.author}
-        gender={book.gender}
-        coverColor={getCoverColor(book.title)}
-        coverUrl={book.cover_url}
-        rating={book.grade || 0}
-        favorite={book.favorite}
-        status={book.reading_status}
-        isExample={book.is_example}
-        to={`/livro/${book.id}`}
-        onOpen={onOpenBook}
-        onToggleFavorite={() => onToggleFavorite(book)}
-      />
-    );
-  }
+  const year = new Date().getFullYear();
+  const readThisYear = books.filter(
+    (b) => b.reading_status === "read" && b.finished_date?.startsWith(String(year)),
+  ).length;
+  const summary = [
+    books.length === 1 ? t("shelf.book") : t("shelf.books", { n: books.length }),
+    t("shelf.readingCount", { n: reading.length }),
+    readThisYear === 1 ? t("shelf.readYearOne", { year }) : t("shelf.readYear", { n: readThisYear, year }),
+  ].join(" · ");
+
+  const ready = !loading && !error;
 
   return (
-    <div className="page-padding">
-      <div style={{ textAlign: "center", marginBottom: "32px" }}>
-        <h1
-          style={{
-            fontFamily: "var(--font-display)",
-            color: "var(--color-text-primary)",
-            fontSize: "28px",
-            margin: 0,
-          }}
-        >
-          {greeting}
-        </h1>
-        <p
-          style={{
-            color: "var(--color-text-secondary)",
-            fontFamily: "var(--font-ui)",
-            marginTop: "8px",
-          }}
-        >
-          {t("home.subtitle")}
-        </p>
-      </div>
+    <div className="page shelf">
+      <header className="page-header">
+        <h1 className="page-title">{t("shelf.title")}</h1>
+        {ready && books.length > 0 && <p className="page-summary">{summary}</p>}
+      </header>
 
-      <form
-        role="search"
-        onSubmit={handleQuickSearch}
-        style={{ maxWidth: "400px", margin: "0 auto 32px", position: "relative" }}
-      >
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="var(--color-text-muted)"
-          strokeWidth="2"
-          style={{
-            position: "absolute",
-            left: "16px",
-            top: "50%",
-            transform: "translateY(-50%)",
-            width: "16px",
-            height: "16px",
-          }}
-        >
-          <circle cx="11" cy="11" r="7" />
-          <path d="m21 21-4.3-4.3" />
-        </svg>
-        <input
-          type="search"
-          value={quickSearch}
-          onChange={(e) => setQuickSearch(e.target.value)}
-          placeholder={t("home.quickSearch")}
-          aria-label={t("home.quickSearchLabel")}
-          style={{
-            width: "100%",
-            padding: "12px 16px 12px 42px",
-            borderRadius: "var(--radius-pill)",
-            border: "1px solid var(--color-border-strong)",
-            background: "var(--color-card)",
-            color: "var(--color-text-primary)",
-            fontFamily: "var(--font-ui)",
-          }}
-        />
-      </form>
-
-      {loading ? (
-        <p style={{ color: "var(--color-text-secondary)" }}>{t("common.loading")}</p>
-      ) : error ? (
-        <p role="alert" style={{ color: "var(--color-error)" }}>
-          {error}
-        </p>
-      ) : (
+      {loading && (
         <>
-          {currentlyReading.length > 0 && (
-            <section aria-labelledby="reading-title" style={{ marginBottom: "32px" }}>
-              <h2 id="reading-title" className="section-label">
-                {t("home.continueReading")}
+          <p className="shelf-status" aria-live="polite">
+            {slow ? t("shelf.waking") : t("common.loading")}
+          </p>
+          <ul className="book-grid" aria-hidden="true">
+            {Array.from({ length: 12 }, (_, i) => (
+              <li key={i}>
+                <span className="cover skeleton" />
+                <span className="skeleton skeleton--line" />
+                <span className="skeleton skeleton--line skeleton--short" />
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+
+      {error && !loading && (
+        <div className="banner banner--error" role="alert">
+          <span>{error}</span>
+          <Button variant="secondary" onClick={onRetry}>
+            {t("common.retry")}
+          </Button>
+        </div>
+      )}
+
+      {ready && books.length === 0 && (
+        <div className="empty-state">
+          <svg className="empty-state__art" viewBox="0 0 160 96" aria-hidden="true" focusable="false">
+            <path d="M58 20a18 18 0 1 0 22 22 14 14 0 0 1-22-22Z" fill="none" stroke="currentColor" strokeWidth="1.5" />
+            <path d="M16 80h128M28 80v8M132 80v8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            <path d="M104 80V54h8v26M114 80V60h7v20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+          </svg>
+          <h2 className="empty-state__title">{t("empty.firstTitle")}</h2>
+          <p className="empty-state__text">{t("empty.firstText")}</p>
+          <div className="empty-state__actions">
+            <Link to="/adicionar" className="btn btn--primary">
+              {t("empty.cta")}
+            </Link>
+            <Link to="/adicionar/manual" className="btn btn--secondary">
+              {t("empty.manual")}
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {ready && books.length > 0 && (
+        <>
+          {reading.length > 0 && (
+            <section className="reading-strip" aria-labelledby="reading-title">
+              <h2 id="reading-title" className="label">
+                {t("shelf.readingNow")}
               </h2>
-              <ul className="reading-row">
-                {currentlyReading.map((book) => (
-                  <li key={book.id}>{card(book)}</li>
+              <ul className="reading-strip__list">
+                {reading.map((book) => (
+                  <li key={book.id}>
+                    <Link to={`/livro/${book.id}`} onClick={onOpenBook} className="reading-item">
+                      <Cover url={book.cover_url} title={book.title} size="thumb" />
+                      <span className="reading-item__text">
+                        <span className="reading-item__title">{book.title}</span>
+                        <span className="reading-item__author">{book.author}</span>
+                      </span>
+                    </Link>
+                  </li>
                 ))}
               </ul>
             </section>
           )}
 
-          <div role="group" aria-label={t("tabs.label")} className="shelf-tabs">
-            {tabs.map((tab) => (
+          <div className="shelf-tools">
+            <SearchField
+              id="shelf-search"
+              className="shelf-tools__search"
+              label={t("shelf.search")}
+              placeholder={t("shelf.searchPh")}
+              value={term}
+              onChange={setTerm}
+            />
+            <div className="shelf-tools__right">
+              <SelectField
+                id="shelf-sort"
+                label={t("shelf.sort")}
+                value={ordem}
+                onChange={(value) => update({ ordem: value })}
+                options={Object.entries(SORTS).map(([value, sort]) => ({ value, label: t(sort.label) }))}
+              />
+              <div className="view-toggle" role="group" aria-label={t("shelf.view")}>
+                {[
+                  { value: "grade", label: t("shelf.grid"), icon: <path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z" /> },
+                  { value: "lista", label: t("shelf.list"), icon: <path d="M4 6h16M4 12h16M4 18h16" /> },
+                ].map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    className="view-toggle__button"
+                    aria-pressed={vista === option.value}
+                    aria-label={option.label}
+                    title={option.label}
+                    onClick={() => update({ vista: option.value })}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+                      {option.icon}
+                    </svg>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="status-tabs" role="group" aria-label={t("tabs.label")}>
+            {TABS.map((option) => (
               <button
-                key={tab.key}
+                key={option.slug}
                 type="button"
-                className="tab-btn"
-                aria-pressed={activeTab === tab.key}
-                onClick={() => onShelfChange({ activeTab: tab.key })}
+                className="status-tabs__tab"
+                aria-pressed={aba === option.slug}
+                onClick={() => update({ aba: option.slug })}
               >
-                {tab.label}
+                {t(`tabs.${option.key}`)}
+                <span className="status-tabs__count">{matches.filter(option.test).length}</span>
               </button>
             ))}
           </div>
 
-          <div style={{ display: "flex", gap: "12px", marginBottom: "20px", flexWrap: "wrap" }}>
-            <input
-              type="search"
-              value={librarySearch}
-              onChange={(e) => onShelfChange({ librarySearch: e.target.value })}
-              placeholder={t("home.filter")}
-              aria-label={t("home.filterLabel")}
-              className="shelf-filter"
-            />
-            <select
-              value={sortBy}
-              onChange={(e) => onShelfChange({ sortBy: e.target.value })}
-              aria-label={t("sort.label")}
-              className="shelf-sort"
-            >
-              <option value="title-asc">{t("sort.titleAsc")}</option>
-              <option value="title-desc">{t("sort.titleDesc")}</option>
-              <option value="author">{t("sort.author")}</option>
-              <option value="gender">{t("sort.gender")}</option>
-            </select>
-          </div>
-
-          {filteredBooks.length === 0 ? (
-            <div style={{ textAlign: "center", marginTop: "60px" }}>
-              <p
-                style={{
-                  color: "var(--color-text-secondary)",
-                  fontFamily: "var(--font-display)",
-                  fontStyle: "italic",
-                  fontSize: "18px",
-                }}
-              >
-                {term ? t("empty.search", { q: librarySearch }) : t(`empty.${activeTab}`)}
-              </p>
-              {!term && (
-                <Link to="/adicionar" className="btn-primary" style={{ marginTop: "16px" }}>
-                  {t("empty.cta")}
-                </Link>
+          {visible.length === 0 ? (
+            <div className="empty-state empty-state--inline">
+              {q ? (
+                <>
+                  <p className="empty-state__text">{t("empty.shelfSearch", { q })}</p>
+                  <Link to={`/adicionar?q=${encodeURIComponent(q)}`} className="btn btn--primary">
+                    {t("empty.catalog")}
+                  </Link>
+                </>
+              ) : (
+                <p className="empty-state__text">{t(`empty.${tab.key}`)}</p>
               )}
             </div>
+          ) : vista === "lista" ? (
+            <ul className="book-list">
+              {visible.map((book) => (
+                <li key={book.id} className="book-row">
+                  <Cover url={book.cover_url} title={book.title} size="thumb" />
+                  <div className="book-row__main">
+                    <Link to={`/livro/${book.id}`} onClick={onOpenBook} className="book-row__link">
+                      {book.title}
+                    </Link>
+                    <span className="book-row__author">{book.author}</span>
+                  </div>
+                  <span className="book-row__genre">{book.gender}</span>
+                  <span className="book-row__status">
+                    <StatusIcon status={book.reading_status} />
+                    {t(`statusShort.${book.reading_status}`)}
+                  </span>
+                  <span className="book-row__rating">
+                    <Stars rating={book.grade} label={t("card.rating", { rating: book.grade })} />
+                  </span>
+                  <span className="book-row__date">
+                    {book.reading_status === "read" && book.finished_date
+                      ? t("shelf.finished", { date: formatDate(book.finished_date, lang) })
+                      : t("shelf.added", { date: formatDate(book.add_date, lang) })}
+                  </span>
+                  <FavoriteButton book={book} onToggle={() => onToggleFavorite(book)} />
+                </li>
+              ))}
+            </ul>
           ) : (
             <ul className="book-grid">
-              {filteredBooks.map((book) => (
-                <li key={book.id}>{card(book)}</li>
+              {visible.map((book) => (
+                <li key={book.id}>
+                  <BookCard book={book} onOpen={onOpenBook} onToggleFavorite={() => onToggleFavorite(book)} />
+                </li>
               ))}
             </ul>
           )}

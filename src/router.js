@@ -56,5 +56,5 @@ export function matchRoute(path) {
 export function useRoute() {
   const href = useSyncExternalStore(subscribe, currentHref);
   const url = new URL(href, window.location.origin);
-  return { ...matchRoute(url.pathname), href, query: url.searchParams };
+  return { ...matchRoute(url.pathname), href, path: url.pathname, query: url.searchParams };
 }

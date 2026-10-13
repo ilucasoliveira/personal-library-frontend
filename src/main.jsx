@@ -8,6 +8,7 @@ import "@fontsource-variable/literata";
 import "@fontsource/ibm-plex-mono/400.css";
 import "@fontsource/ibm-plex-mono/500.css";
 import "./index.css";
+import "./components/ui/ui.css";
 import App from "./App.jsx";
 import { applyAppearance, readSavedAppearance } from "./theme";
 
