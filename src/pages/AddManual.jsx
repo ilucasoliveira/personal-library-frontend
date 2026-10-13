@@ -21,7 +21,7 @@ export default function AddManual({ onCreated, onCancel, initialTitle = "" }) {
       background: "var(--color-card)",
       border: errors[field]
         ? "1px solid var(--color-warning)"
-        : "1px solid var(--color-border)",
+        : "1px solid var(--color-border-strong)",
       borderRadius: "var(--radius-sm)",
       padding: "10px 14px",
       color: "var(--color-text-primary)",
@@ -106,50 +106,65 @@ export default function AddManual({ onCreated, onCancel, initialTitle = "" }) {
         {t("manual.title")}
       </h1>
 
-      <form onSubmit={handleSubmit}>
-        <label style={labelStyle}>{t("manual.name")}</label>
+      <form onSubmit={handleSubmit} noValidate>
+        <label htmlFor="manual-title" style={labelStyle}>{t("manual.name")}</label>
         <input
+          id="manual-title"
+          required
+          aria-invalid={Boolean(errors.title)}
+          aria-describedby={errors.title ? "manual-title-error" : undefined}
           style={inputStyleFor("title")}
           value={form.title}
           onChange={(e) => updateField("title", e.target.value)}
           placeholder={errors.title ? t("manual.required") : ""}
         />
         {errors.title && (
-          <p style={errorTextStyle}>{t("manual.titleError")}</p>
+          <p id="manual-title-error" style={errorTextStyle}>{t("manual.titleError")}</p>
         )}
 
-        <label style={labelStyle}>{t("manual.author")}</label>
+        <label htmlFor="manual-author" style={labelStyle}>{t("manual.author")}</label>
         <input
+          id="manual-author"
+          required
+          aria-invalid={Boolean(errors.author)}
+          aria-describedby={errors.author ? "manual-author-error" : undefined}
           style={inputStyleFor("author")}
           value={form.author}
           onChange={(e) => updateField("author", e.target.value)}
           placeholder={errors.author ? t("manual.required") : ""}
         />
         {errors.author && (
-          <p style={errorTextStyle}>{t("manual.authorError")}</p>
+          <p id="manual-author-error" style={errorTextStyle}>{t("manual.authorError")}</p>
         )}
 
-        <label style={labelStyle}>{t("manual.gender")}</label>
+        <label htmlFor="manual-gender" style={labelStyle}>{t("manual.gender")}</label>
         <input
+          id="manual-gender"
+          required
+          aria-invalid={Boolean(errors.gender)}
+          aria-describedby={errors.gender ? "manual-gender-error" : undefined}
           style={inputStyleFor("gender")}
           value={form.gender}
           onChange={(e) => updateField("gender", e.target.value)}
           placeholder={errors.gender ? t("manual.required") : ""}
         />
         {errors.gender && (
-          <p style={errorTextStyle}>{t("manual.genderError")}</p>
+          <p id="manual-gender-error" style={errorTextStyle}>{t("manual.genderError")}</p>
         )}
 
-        <label style={labelStyle}>{t("manual.cover")}</label>
+        <label htmlFor="manual-cover" style={labelStyle}>{t("manual.cover")}</label>
         <input
+          id="manual-cover"
+          type="url"
           style={inputStyleFor()}
           value={form.cover_url}
           onChange={(e) => updateField("cover_url", e.target.value)}
           placeholder="https://..."
         />
 
-        <label style={labelStyle}>{t("manual.synopsis")}</label>
+        <label htmlFor="manual-synopsis" style={labelStyle}>{t("manual.synopsis")}</label>
         <textarea
+          id="manual-synopsis"
           style={{ ...inputStyleFor(), fontFamily: "var(--font-reading)" }}
           rows={4}
           value={form.synopsis}

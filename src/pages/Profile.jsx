@@ -231,7 +231,7 @@ export default function Profile({ books, user, onUserUpdated, onOpenSettings, on
             </div>
             <div
               style={{
-                fontSize: "11px",
+                fontSize: "12px",
                 color: "var(--color-text-muted)",
                 textTransform: "uppercase",
                 marginTop: "4px",
@@ -260,7 +260,7 @@ export default function Profile({ books, user, onUserUpdated, onOpenSettings, on
           style={{
             display: "block",
             color: "var(--color-text-secondary)",
-            fontSize: "10px",
+            fontSize: "12px",
             textTransform: "uppercase",
             marginBottom: "6px",
           }}

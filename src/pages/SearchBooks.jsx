@@ -7,11 +7,9 @@ import { useI18n } from "../i18n";
 
 const PAGE_SIZE = 10;
 
-export default function SearchBooks({
-  onGoManual,
-  initialQuery = "",
-  onConsumeInitialQuery,
-}) {
+// A busca mora na URL (/adicionar?q=...): recarregar ou compartilhar o link repete a busca.
+// O App remonta esta tela quando o q muda (key={q}), e a primeira página roda sozinha.
+export default function SearchBooks({ onGoManual, initialQuery = "", onQueryChange, onAdded }) {
   const { t } = useI18n();
   const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState([]);
@@ -42,18 +40,21 @@ export default function SearchBooks({
   }
 
   useEffect(() => {
-    if (initialQuery.trim()) {
-      setPage(0);
-      runSearch(initialQuery, 0);
-      onConsumeInitialQuery?.();
-    }
+    if (initialQuery.trim()) runSearch(initialQuery.trim(), 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function handleSearch(e) {
+  function handleSearch(e) {
     e.preventDefault();
-    if (!query.trim()) return;
+    const q = query.trim();
+    if (!q) return;
+    // busca nova vai para a URL; a mesma busca de novo roda aqui mesmo
+    if (q !== initialQuery.trim()) {
+      onQueryChange(q);
+      return;
+    }
     setPage(0);
-    await runSearch(query, 0);
+    runSearch(q, 0);
   }
 
   async function goToPage(newPage) {
@@ -68,13 +69,14 @@ export default function SearchBooks({
 
   async function handleAdd(book) {
     try {
-      await createBook({
+      const created = await createBook({
         title: book.title,
         author: book.author,
         gender: book.gender,
         synopsis: book.synopsis,
         cover_url: book.cover,
       });
+      onAdded?.(created);
       notify(t("search.added", { title: book.title }), "success");
     } catch (err) {
       notify(err.message);
@@ -90,7 +92,18 @@ export default function SearchBooks({
       className="page-padding"
       style={{ background: "var(--color-background)", minHeight: "100vh" }}
     >
+      <h1
+        style={{
+          fontFamily: "var(--font-display)",
+          color: "var(--color-text-primary)",
+          fontSize: "24px",
+          margin: "0 0 16px",
+        }}
+      >
+        {t("nav.add")}
+      </h1>
       <form
+        role="search"
         onSubmit={handleSearch}
         style={{ display: "flex", gap: "8px", marginBottom: "24px" }}
       >
@@ -105,7 +118,7 @@ export default function SearchBooks({
             maxWidth: "400px",
             padding: "10px 16px",
             borderRadius: "var(--radius-pill)",
-            border: "1px solid var(--color-border)",
+            border: "1px solid var(--color-border-strong)",
             background: "var(--color-card)",
             color: "var(--color-text-primary)",
             fontFamily: "var(--font-ui)",
@@ -127,15 +140,17 @@ export default function SearchBooks({
         </button>
       </form>
 
-      {searching && (
-        <p style={{ color: "var(--color-text-secondary)" }}>{t("search.searching")}</p>
-      )}
+      <p aria-live="polite" style={{ color: "var(--color-text-secondary)", margin: 0 }}>
+        {searching ? t("search.searching") : ""}
+      </p>
 
-      <div className="book-grid">
+      <ul className="book-grid">
         {results.map((book) => (
-          <BookResultCard key={book.googleId} book={book} onAdd={handleAdd} />
+          <li key={book.googleId}>
+            <BookResultCard book={book} onAdd={handleAdd} />
+          </li>
         ))}
-      </div>
+      </ul>
 
       {!searching && results.length > 0 && searched?.source && (
         <p

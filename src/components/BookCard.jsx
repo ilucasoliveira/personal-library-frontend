@@ -1,6 +1,20 @@
 import { getGenderColor } from "../utils/coverColor";
 import { useI18n } from "../i18n";
+import { Link } from "./Link";
 
+// na grade a capa aparece com ~160 px: o tamanho M da Open Library basta (o L tem ~500 px)
+function gridCover(url) {
+  return url?.includes("covers.openlibrary.org") ? url.replace(/-L\.jpg$/, "-M.jpg") : url;
+}
+
+const STATUS_ICON = {
+  toRead: "🌙",
+  reading: "🌗",
+  read: "🌕",
+};
+
+// O card é um link de verdade (Tab chega nele, Enter abre, Ctrl+clique abre em outra aba).
+// O coração fica fora do link: botão dentro de link é HTML inválido e confunde o leitor de tela.
 export default function BookCard({
   title,
   author,
@@ -11,182 +25,80 @@ export default function BookCard({
   favorite = false,
   status = "reading",
   isExample = false,
-  onClick,
+  to,
+  onOpen,
   onToggleFavorite,
 }) {
   const { t } = useI18n();
-  const statusIcon = {
-    toRead: "🌙",
-    reading: "🌗",
-    read: "🌕",
-  }[status];
+  // os rótulos de status começam com o emoji da lua; o leitor de tela recebe só o texto
+  const statusText = t(`status.${status}`).replace(/^\S+\s/, "");
 
   return (
-    <div
-      onClick={onClick}
-      className="book-card"
-      style={{
-        background: "var(--color-card)",
-        borderRadius: "var(--radius-md)",
-        overflow: "hidden",
-        boxShadow: "var(--shadow-card)",
-        width: "100%",
-        fontFamily: "var(--font-ui)",
-        cursor: "pointer",
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
-      }}
-    >
-      <div
-        style={{
-          background: coverUrl ? "none" : coverColor,
-          height: "220px",
-          position: "relative",
-          flexShrink: 0,
-        }}
-      >
-        {coverUrl && (
-          <img
-            src={coverUrl}
-            alt={title}
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-          />
-        )}
+    <div className="book-card">
+      <Link to={to} onClick={onOpen} className="book-card__link">
         <div
-          style={{
-            position: "absolute",
-            top: "8px",
-            left: "8px",
-            width: "22px",
-            height: "22px",
-            borderRadius: "50%",
-            background: "rgba(20,21,43,0.7)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "12px",
-          }}
+          className="book-card__cover"
+          style={{ background: coverUrl ? "none" : coverColor }}
         >
-          {statusIcon}
+          {coverUrl && (
+            <img
+              src={gridCover(coverUrl)}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              width="180"
+              height="270"
+            />
+          )}
+          <span className="book-card__status" aria-hidden="true">
+            {STATUS_ICON[status]}
+          </span>
+          {isExample && (
+            <span className="example-badge book-card__example">{t("card.example")}</span>
+          )}
         </div>
-        {isExample && (
-          <span
-            className="example-badge"
-            style={{
-              position: "absolute",
-              left: "8px",
-              bottom: "8px",
-              background: "rgba(20,21,43,0.82)",
-              fontSize: "9px",
-            }}
-          >
-            {t("card.example")}
-          </span>
-        )}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleFavorite?.();
-          }}
-          aria-label={favorite ? t("card.removeFavorite") : t("card.addFavorite")}
-          style={{
-            position: "absolute",
-            top: "4px",
-            right: "8px",
-            fontSize: "26px",
-            color: favorite ? "var(--color-favorite)" : "rgba(255,255,255,0.7)",
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            padding: "4px",
-            lineHeight: 1,
-          }}
-        >
-          {favorite ? "♥" : "♡"}
-        </button>
-      </div>
-      <div
-        style={{
-          padding: "var(--space-3)",
-          display: "flex",
-          flexDirection: "column",
-          flexGrow: 1,
-        }}
-      >
-        <p
-          style={{
-            margin: 0,
-            color: "var(--color-text-primary)",
-            fontSize: "var(--text-small)",
-            fontWeight: "var(--font-weight-semibold)",
-            display: "-webkit-box",
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: "vertical",
-            overflow: "hidden",
-            lineHeight: "1.3em",
-          }}
-        >
-          {title}
-        </p>
-        {gender && (
-          <span
-            style={{
-              display: "block",
-              marginTop: "4px",
-              fontFamily: "var(--font-mono)",
-              fontSize: "9px",
-              textTransform: "uppercase",
-              letterSpacing: "0.03em",
-              padding: "2px 8px",
-              borderRadius: "var(--radius-pill)",
-              background: getGenderColor(gender).bg,
-              color: getGenderColor(gender).text,
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              maxWidth: "fit-content",
-            }}
-          >
-            {gender}
-          </span>
-        )}
-        <p
-          style={{
-            margin: "4px 0 0",
-            color: "var(--color-text-muted)",
-            fontSize: "var(--text-caption)",
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-          }}
-        >
-          {author}
-        </p>
-        <div
-          style={{
-            marginTop: "auto",
-            paddingTop: "6px",
-            display: "flex",
-            gap: "2px",
-          }}
-        >
-          {[1, 2, 3, 4, 5].map((i) => (
+        <div className="book-card__body">
+          <span className="book-card__title">{title}</span>
+          {gender && (
             <span
-              key={i}
+              className="book-card__genre"
               style={{
-                fontSize: "12px",
-                color:
-                  i <= rating
-                    ? "var(--color-star-filled)"
-                    : "var(--color-star-empty)",
+                background: getGenderColor(gender).bg,
+                color: getGenderColor(gender).text,
               }}
             >
-              ★
+              {gender}
             </span>
-          ))}
+          )}
+          <span className="book-card__author">{author}</span>
+          <span className="sr-only">
+            {statusText}
+            {rating > 0 ? `, ${t("card.rating", { rating })}` : ""}
+          </span>
+          <span className="book-card__stars" aria-hidden="true">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <span
+                key={i}
+                style={{
+                  color: i <= rating ? "var(--color-star-filled)" : "var(--color-star-empty)",
+                }}
+              >
+                ★
+              </span>
+            ))}
+          </span>
         </div>
-      </div>
+      </Link>
+      <button
+        type="button"
+        className="book-card__favorite"
+        onClick={() => onToggleFavorite?.()}
+        aria-pressed={favorite}
+        aria-label={t("card.favoriteOf", { title })}
+        style={{ color: favorite ? "var(--color-favorite)" : "rgba(255,255,255,0.85)" }}
+      >
+        <span aria-hidden="true">{favorite ? "♥" : "♡"}</span>
+      </button>
     </div>
   );
 }

@@ -75,7 +75,7 @@ export default function BookDetails({ book, onBack, onUpdated, onDeleted }) {
   const inputStyle = {
     width: "100%",
     background: "var(--color-card)",
-    border: "1px solid var(--color-border)",
+    border: "1px solid var(--color-border-strong)",
     borderRadius: "var(--radius-sm)",
     padding: "8px 12px",
     color: "var(--color-text-primary)",
@@ -119,7 +119,7 @@ export default function BookDetails({ book, onBack, onUpdated, onDeleted }) {
           {book.cover_url && (
             <img
               src={book.cover_url}
-              alt={book.title}
+              alt=""
               style={{ width: "100%", height: "100%", objectFit: "cover" }}
             />
           )}
@@ -258,7 +258,7 @@ export default function BookDetails({ book, onBack, onUpdated, onDeleted }) {
               <span
                 style={{
                   fontFamily: "var(--font-mono)",
-                  fontSize: "11px",
+                  fontSize: "12px",
                   textTransform: "uppercase",
                   padding: "5px 12px",
                   borderRadius: "var(--radius-pill)",
@@ -380,7 +380,7 @@ export default function BookDetails({ book, onBack, onUpdated, onDeleted }) {
               style={{
                 width: "100%",
                 background: "var(--color-card)",
-                border: "1px solid var(--color-border)",
+                border: "1px solid var(--color-border-strong)",
                 borderRadius: "var(--radius-sm)",
                 padding: "10px",
                 color: "var(--color-text-primary)",
