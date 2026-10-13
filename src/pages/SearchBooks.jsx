@@ -3,6 +3,7 @@ import { searchGoogleBooks } from "../services/googleBooks";
 import { createBook } from "../services/api";
 import { notify } from "../utils/notify";
 import BookResultCard from "../components/BookResultCard";
+import { useI18n } from "../i18n";
 
 const PAGE_SIZE = 10;
 
@@ -11,6 +12,7 @@ export default function SearchBooks({
   initialQuery = "",
   onConsumeInitialQuery,
 }) {
+  const { t } = useI18n();
   const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(Boolean(initialQuery.trim()));
@@ -19,14 +21,19 @@ export default function SearchBooks({
 
   async function runSearch(searchQuery, pageIndex) {
     setSearching(true);
-    const { items, totalItems: total } = await searchGoogleBooks(
-      searchQuery,
-      pageIndex * PAGE_SIZE,
-      PAGE_SIZE,
-    );
-    setResults(items);
-    setTotalItems(total);
-    setSearching(false);
+    try {
+      const { items, totalItems: total } = await searchGoogleBooks(
+        searchQuery,
+        pageIndex * PAGE_SIZE,
+        PAGE_SIZE,
+      );
+      setResults(items);
+      setTotalItems(total);
+    } catch {
+      notify(t("search.error"));
+    } finally {
+      setSearching(false);
+    }
   }
 
   useEffect(() => {
@@ -58,7 +65,7 @@ export default function SearchBooks({
         synopsis: book.synopsis,
         cover_url: book.cover,
       });
-      notify(`"${book.title}" adicionado à biblioteca!`, "success");
+      notify(t("search.added", { title: book.title }), "success");
     } catch (err) {
       notify(err.message);
     }
@@ -80,7 +87,7 @@ export default function SearchBooks({
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Buscar por título, autor..."
+          placeholder={t("search.placeholder")}
           style={{
             flex: 1,
             maxWidth: "400px",
@@ -96,7 +103,7 @@ export default function SearchBooks({
           type="submit"
           style={{
             background: "var(--color-primary)",
-            color: "#241119",
+            color: "var(--color-on-primary)",
             border: "none",
             borderRadius: "var(--radius-sm)",
             padding: "10px 20px",
@@ -104,12 +111,12 @@ export default function SearchBooks({
             cursor: "pointer",
           }}
         >
-          Buscar
+          {t("search.button")}
         </button>
       </form>
 
       {searching && (
-        <p style={{ color: "var(--color-text-secondary)" }}>Buscando...</p>
+        <p style={{ color: "var(--color-text-secondary)" }}>{t("search.searching")}</p>
       )}
 
       <div className="book-grid">
@@ -145,7 +152,7 @@ export default function SearchBooks({
               fontFamily: "var(--font-ui)",
             }}
           >
-            ← Anterior
+            {t("search.prev")}
           </button>
 
           <span
@@ -155,7 +162,7 @@ export default function SearchBooks({
               color: "var(--color-text-secondary)",
             }}
           >
-            Página {page + 1} de {totalPages || 1}
+            {t("search.page", { page: page + 1, total: totalPages || 1 })}
           </span>
 
           <button
@@ -174,7 +181,7 @@ export default function SearchBooks({
               fontFamily: "var(--font-ui)",
             }}
           >
-            Próxima →
+            {t("search.next")}
           </button>
         </div>
       )}
@@ -190,14 +197,13 @@ export default function SearchBooks({
               fontStyle: "italic",
             }}
           >
-            Esse título não está no nosso banco de dados — mas isso não
-            significa que ele não mereça um lugar na sua estante.
+            {t("search.notFound")}
           </p>
           <button
             onClick={() => onGoManual(query)}
             style={{
               background: "var(--color-primary)",
-              color: "#241119",
+              color: "var(--color-on-primary)",
               border: "none",
               borderRadius: "var(--radius-sm)",
               padding: "10px 20px",
@@ -205,7 +211,7 @@ export default function SearchBooks({
               cursor: "pointer",
             }}
           >
-            Adicionar manualmente
+            {t("search.addManual")}
           </button>
         </div>
       )}

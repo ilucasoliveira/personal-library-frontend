@@ -1,31 +1,30 @@
 import { useState } from "react";
 import { uploadProfilePhoto } from "../services/api";
 import { notify } from "../utils/notify";
-import { DEMO_MODE } from "../config";
+import { useI18n } from "../i18n";
 
-export default function Profile({
-  books,
-  profile,
-  onProfileUpdated,
-  onLogout,
-}) {
-  const [photoUrl, setPhotoUrl] = useState(profile?.photo_url || "");
+export default function Profile({ books, user, onUserUpdated, onOpenSettings, onLogout }) {
+  const { lang, t } = useI18n();
+  const [uploading, setUploading] = useState(false);
+  const photoUrl = user.photo_url;
 
   async function handleFileChange(e) {
     const file = e.target.files[0];
+    e.target.value = "";
     if (!file) return;
+    setUploading(true);
     try {
-      const updated = await uploadProfilePhoto(file);
-      onProfileUpdated(updated);
-      setPhotoUrl(updated.photo_url);
+      onUserUpdated(await uploadProfilePhoto(file));
+      notify(t("profile.photoUpdated"), "success");
     } catch (err) {
       notify(err.message);
+    } finally {
+      setUploading(false);
     }
   }
 
   function handleLogoutClick() {
-    const confirmed = window.confirm("Tem certeza que deseja sair?");
-    if (!confirmed) return;
+    if (!window.confirm(t("profile.confirmLogout"))) return;
     onLogout();
   }
 
@@ -34,10 +33,11 @@ export default function Profile({
 
   const ratedBooks = books.filter((b) => b.grade);
   const avgRating = ratedBooks.length
-    ? (
-        ratedBooks.reduce((sum, b) => sum + b.grade, 0) / ratedBooks.length
-      ).toFixed(1)
-    : "—";
+    ? (ratedBooks.reduce((sum, b) => sum + b.grade, 0) / ratedBooks.length).toLocaleString(
+        lang === "pt" ? "pt-BR" : "en",
+        { minimumFractionDigits: 1, maximumFractionDigits: 1 },
+      )
+    : "-";
 
   const genderCounts = books.reduce((acc, b) => {
     acc[b.gender] = (acc[b.gender] || 0) + 1;
@@ -45,7 +45,7 @@ export default function Profile({
   }, {});
   const favoriteGender = Object.keys(genderCounts).length
     ? Object.entries(genderCounts).sort((a, b) => b[1] - a[1])[0][0]
-    : "—";
+    : "-";
 
   const readBooks = books.filter((b) => b.reading_status === "read");
   const authorCounts = readBooks.reduce((acc, b) => {
@@ -54,7 +54,7 @@ export default function Profile({
   }, {});
   const topAuthor = Object.keys(authorCounts).length
     ? Object.entries(authorCounts).sort((a, b) => b[1] - a[1])[0][0]
-    : "—";
+    : "-";
 
   const now = new Date();
   const currentMonth = now.getMonth();
@@ -82,30 +82,30 @@ export default function Profile({
   const favoriteBook =
     books
       .filter((b) => b.favorite)
-      .sort((a, b) => (b.grade || 0) - (a.grade || 0))[0]?.title || "—";
+      .sort((a, b) => (b.grade || 0) - (a.grade || 0))[0]?.title || "-";
   const lastRead =
     readBooks
       .filter((b) => b.finished_date)
       .sort((a, b) => b.finished_date.localeCompare(a.finished_date))[0]
-      ?.title || "—";
+      ?.title || "-";
   const toReadCount = books.filter((b) => b.reading_status === "toRead").length;
   const favoritesCount = books.filter((b) => b.favorite).length;
 
   const stats = [
-    { label: "Livros lidos", value: totalRead },
-    { label: "Lendo agora", value: currentlyReadingCount },
-    { label: "Autor mais lido", value: topAuthor },
-    { label: "Gênero favorito", value: favoriteGender },
-    { label: "Total na estante", value: totalBooks },
-    { label: "Nota média", value: avgRating },
-    { label: "Lidos este mês", value: readThisMonth },
-    { label: "Lidos este ano", value: readThisYear },
+    { label: t("stats.read"), value: totalRead },
+    { label: t("stats.reading"), value: currentlyReadingCount },
+    { label: t("stats.topAuthor"), value: topAuthor },
+    { label: t("stats.topGenre"), value: favoriteGender },
+    { label: t("stats.total"), value: totalBooks },
+    { label: t("stats.avg"), value: avgRating },
+    { label: t("stats.month"), value: readThisMonth },
+    { label: t("stats.year"), value: readThisYear },
   ];
 
   return (
     <div
+      className="page-padding"
       style={{
-        padding: "40px",
         background: "var(--color-background)",
         minHeight: "100vh",
         fontFamily: "var(--font-ui)",
@@ -123,8 +123,16 @@ export default function Profile({
             backgroundSize: "cover",
             backgroundPosition: "center",
             margin: "0 auto 16px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "var(--color-on-primary)",
+            fontSize: "28px",
+            fontWeight: 700,
           }}
-        />
+        >
+          {!photoUrl && user.name.charAt(0).toUpperCase()}
+        </div>
         <h1
           style={{
             fontFamily: "var(--font-display)",
@@ -133,9 +141,9 @@ export default function Profile({
             fontSize: "26px",
           }}
         >
-          Minha biblioteca
+          {user.name}
         </h1>
-        {favoriteBook !== "—" && (
+        {favoriteBook !== "-" && (
           <p
             style={{
               fontFamily: "var(--font-display)",
@@ -144,7 +152,7 @@ export default function Profile({
               marginTop: "8px",
             }}
           >
-            "Livro favorito: {favoriteBook}"
+            "{t("profile.favoriteBook", { title: favoriteBook })}"
           </p>
         )}
 
@@ -155,7 +163,7 @@ export default function Profile({
             textAlign: "center",
           }}
         >
-          {DEMO_MODE ? (
+          {user.is_visitor ? (
             <p
               style={{
                 fontSize: "12px",
@@ -163,13 +171,14 @@ export default function Profile({
                 margin: 0,
               }}
             >
-              Na demo a foto de perfil fica desativada.
+              {t("profile.visitorPhoto")}
             </p>
           ) : (
           <label
             style={{
+              opacity: uploading ? 0.6 : 1,
               background: "var(--color-primary)",
-              color: "#241119",
+              color: "var(--color-on-primary)",
               border: "none",
               borderRadius: "var(--radius-sm)",
               padding: "8px 16px",
@@ -179,10 +188,11 @@ export default function Profile({
               display: "inline-block",
             }}
           >
-            Escolher foto
+            {uploading ? t("common.loading") : t("profile.choosePhoto")}
             <input
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              disabled={uploading}
               onChange={handleFileChange}
               style={{ display: "none" }}
             />
@@ -255,13 +265,13 @@ export default function Profile({
             marginBottom: "6px",
           }}
         >
-          Ficha do leitor
+          {t("reader.title")}
         </b>
-        Último livro lido: {lastRead}
+        {t("reader.lastRead", { value: lastRead })}
         <br />
-        Favoritos na estante: {favoritesCount}
+        {t("reader.favorites", { value: favoritesCount })}
         <br />
-        Na fila para ler: {toReadCount}
+        {t("reader.queue", { value: toReadCount })}
       </div>
 
       <div
@@ -269,22 +279,17 @@ export default function Profile({
           maxWidth: "400px",
           margin: "24px auto 0",
           textAlign: "center",
+          display: "flex",
+          gap: "10px",
+          justifyContent: "center",
+          flexWrap: "wrap",
         }}
       >
-        <button
-          onClick={handleLogoutClick}
-          style={{
-            background: "none",
-            border: "1px solid var(--color-error)",
-            color: "var(--color-error)",
-            borderRadius: "var(--radius-sm)",
-            padding: "8px 20px",
-            fontSize: "13px",
-            cursor: "pointer",
-            fontFamily: "var(--font-ui)",
-          }}
-        >
-          Sair da conta
+        <button className="btn-ghost" onClick={onOpenSettings}>
+          {t("profile.settings")}
+        </button>
+        <button className="btn-danger" onClick={handleLogoutClick}>
+          {t("profile.logout")}
         </button>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import { getGenderColor } from "../utils/coverColor";
+import { useI18n } from "../i18n";
 
 export default function BookCard({
   title,
@@ -13,6 +14,7 @@ export default function BookCard({
   onClick,
   onToggleFavorite,
 }) {
+  const { t } = useI18n();
   const statusIcon = {
     toRead: "🌙",
     reading: "🌗",
@@ -79,7 +81,7 @@ export default function BookCard({
               fontSize: "9px",
             }}
           >
-            Exemplo
+            {t("card.example")}
           </span>
         )}
         <button
@@ -87,9 +89,7 @@ export default function BookCard({
             e.stopPropagation();
             onToggleFavorite?.();
           }}
-          aria-label={
-            favorite ? "Remover dos favoritos" : "Adicionar aos favoritos"
-          }
+          aria-label={favorite ? t("card.removeFavorite") : t("card.addFavorite")}
           style={{
             position: "absolute",
             top: "4px",

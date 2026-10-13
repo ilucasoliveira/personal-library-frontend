@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { createBook } from "../services/api";
 import { notify } from "../utils/notify";
+import { useI18n } from "../i18n";
 
 export default function AddManual({ onCreated, onCancel, initialTitle = "" }) {
+  const { t } = useI18n();
   const [form, setForm] = useState({
     title: initialTitle,
     author: "",
@@ -91,7 +93,7 @@ export default function AddManual({ onCreated, onCancel, initialTitle = "" }) {
           cursor: "pointer",
         }}
       >
-        ← Voltar
+        {t("common.back")}
       </button>
 
       <h1
@@ -101,44 +103,44 @@ export default function AddManual({ onCreated, onCancel, initialTitle = "" }) {
           marginBottom: "24px",
         }}
       >
-        Conte-me sobre esse livro
+        {t("manual.title")}
       </h1>
 
       <form onSubmit={handleSubmit}>
-        <label style={labelStyle}>Nome do livro *</label>
+        <label style={labelStyle}>{t("manual.name")}</label>
         <input
           style={inputStyleFor("title")}
           value={form.title}
           onChange={(e) => updateField("title", e.target.value)}
-          placeholder={errors.title ? "obrigatório" : ""}
+          placeholder={errors.title ? t("manual.required") : ""}
         />
         {errors.title && (
-          <p style={errorTextStyle}>Escreva o título para continuar.</p>
+          <p style={errorTextStyle}>{t("manual.titleError")}</p>
         )}
 
-        <label style={labelStyle}>Autor *</label>
+        <label style={labelStyle}>{t("manual.author")}</label>
         <input
           style={inputStyleFor("author")}
           value={form.author}
           onChange={(e) => updateField("author", e.target.value)}
-          placeholder={errors.author ? "obrigatório" : ""}
+          placeholder={errors.author ? t("manual.required") : ""}
         />
         {errors.author && (
-          <p style={errorTextStyle}>Escreva o autor para continuar.</p>
+          <p style={errorTextStyle}>{t("manual.authorError")}</p>
         )}
 
-        <label style={labelStyle}>Gênero *</label>
+        <label style={labelStyle}>{t("manual.gender")}</label>
         <input
           style={inputStyleFor("gender")}
           value={form.gender}
           onChange={(e) => updateField("gender", e.target.value)}
-          placeholder={errors.gender ? "obrigatório" : ""}
+          placeholder={errors.gender ? t("manual.required") : ""}
         />
         {errors.gender && (
-          <p style={errorTextStyle}>Escolha um gênero para continuar.</p>
+          <p style={errorTextStyle}>{t("manual.genderError")}</p>
         )}
 
-        <label style={labelStyle}>URL da capa (opcional)</label>
+        <label style={labelStyle}>{t("manual.cover")}</label>
         <input
           style={inputStyleFor()}
           value={form.cover_url}
@@ -146,7 +148,7 @@ export default function AddManual({ onCreated, onCancel, initialTitle = "" }) {
           placeholder="https://..."
         />
 
-        <label style={labelStyle}>Sinopse (opcional)</label>
+        <label style={labelStyle}>{t("manual.synopsis")}</label>
         <textarea
           style={{ ...inputStyleFor(), fontFamily: "var(--font-reading)" }}
           rows={4}
@@ -159,7 +161,7 @@ export default function AddManual({ onCreated, onCancel, initialTitle = "" }) {
           style={{
             marginTop: "10px",
             background: "var(--color-primary)",
-            color: "#241119",
+            color: "var(--color-on-primary)",
             border: "none",
             borderRadius: "var(--radius-sm)",
             padding: "10px 24px",
@@ -167,7 +169,7 @@ export default function AddManual({ onCreated, onCancel, initialTitle = "" }) {
             cursor: "pointer",
           }}
         >
-          Salvar na estante
+          {t("manual.submit")}
         </button>
       </form>
     </div>

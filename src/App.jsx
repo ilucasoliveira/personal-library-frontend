@@ -1,21 +1,33 @@
 import Login from "./pages/Login";
-import { setAuth, clearAuth } from "./services/api";
 import { getCoverColor } from "./utils/coverColor";
 import { useState, useEffect } from "react";
 import BookCard from "./components/BookCard";
-import { getBooks, getProfile, updateBook } from "./services/api";
+import {
+  clearToken,
+  getBooks,
+  getMe,
+  getToken,
+  saveToken,
+  SESSION_EXPIRED,
+  updateBook,
+} from "./services/api";
 import SearchBooks from "./pages/SearchBooks";
 import BookDetails from "./pages/BookDetails";
 import Profile from "./pages/Profile";
+import Settings from "./pages/Settings";
 import AddManual from "./pages/AddManual";
 import Toast from "./components/Toast";
 import { notify } from "./utils/notify";
-import { APP_NAME, DEMO_MODE } from "./config";
+import { APP_NAME } from "./config";
+import { useI18n } from "./i18n";
+import { applyAppearance } from "./theme";
 
 function App() {
-  const [authToken, setAuthToken] = useState(() =>
-    localStorage.getItem("authToken"),
-  );
+  const { t, setLanguage } = useI18n();
+  // user: a conta logada (vem de /me ou do login); booting: conferindo um token salvo
+  const [user, setUser] = useState(null);
+  const [booting, setBooting] = useState(() => Boolean(getToken()));
+  const [notice, setNotice] = useState("");
   const [view, setView] = useState("library");
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -23,7 +35,6 @@ function App() {
   const [selectedBook, setSelectedBook] = useState(null);
   const [activeTab, setActiveTab] = useState("all");
   const [manualPrefill, setManualPrefill] = useState("");
-  const [profile, setProfile] = useState(null);
   const [searchPrefill, setSearchPrefill] = useState("");
   const [quickSearch, setQuickSearch] = useState("");
   const [librarySearch, setLibrarySearch] = useState("");
@@ -36,25 +47,56 @@ function App() {
 
   function getGreeting() {
     const hour = new Date().getHours();
-    if (hour >= 6 && hour < 12) return "Bom dia";
-    if (hour >= 12 && hour < 18) return "Boa tarde";
-    return "Boa noite";
+    const greeting =
+      hour >= 6 && hour < 12
+        ? t("greeting.morning")
+        : hour >= 12 && hour < 18
+          ? t("greeting.afternoon")
+          : t("greeting.evening");
+    const firstName = user?.is_visitor ? "" : user?.name.split(" ")[0];
+    return firstName ? `${greeting}, ${firstName}` : greeting;
   }
 
+  // aplica a conta: idioma e aparência salvos nela (o visitante usa os do navegador)
+  function applyUser(account) {
+    setUser(account);
+    if (!account.is_visitor) {
+      setLanguage(account.language);
+      applyAppearance({ theme: account.theme, accent: account.accent });
+    }
+  }
+
+  // ao abrir o app com um token salvo, confere se ele ainda vale
   useEffect(() => {
-    if (!authToken) return;
+    if (!getToken()) return;
+    getMe()
+      .then(applyUser)
+      .catch(() => clearToken())
+      .finally(() => setBooting(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // token vencido em qualquer requisição: volta para a tela de login
+  useEffect(() => {
+    function handleExpired() {
+      setUser(null);
+      setNotice(t("auth.sessionExpired"));
+    }
+    window.addEventListener(SESSION_EXPIRED, handleExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED, handleExpired);
+  }, [t]);
+
+  const userId = user?.id;
+  useEffect(() => {
+    if (!userId) return;
     getBooks()
-      .then(setBooks)
+      .then((list) => {
+        setBooks(list);
+        setError(null);
+      })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [view, authToken]);
-
-  useEffect(() => {
-    if (!authToken) return;
-    getProfile()
-      .then(setProfile)
-      .catch(() => {});
-  }, [authToken]);
+  }, [view, userId]);
 
   function handleUpdated(updatedBook) {
     setSelectedBook(updatedBook);
@@ -73,8 +115,12 @@ function App() {
     setView("addManual");
   }
 
-  function handleProfileUpdated(updatedProfile) {
-    setProfile(updatedProfile);
+  function handleLogin(session) {
+    saveToken(session.access_token);
+    setNotice("");
+    setLoading(true);
+    setView("library");
+    applyUser(session.user);
   }
 
   function handleQuickSearch(e) {
@@ -86,9 +132,11 @@ function App() {
   }
 
   function handleLogout() {
-    clearAuth();
-    localStorage.removeItem("authToken");
-    setAuthToken(null);
+    clearToken();
+    setUser(null);
+    setBooks([]);
+    setSelectedBook(null);
+    setView("library");
   }
 
   async function handleToggleFavorite(book) {
@@ -124,28 +172,30 @@ function App() {
     });
 
   const tabs = [
-    { key: "favorites", label: "Favoritos" },
-    { key: "toRead", label: "Na lista" },
-    { key: "read", label: "Lidos" },
-    { key: "all", label: "Todos" },
+    { key: "favorites", label: t("tabs.favorites") },
+    { key: "toRead", label: t("tabs.toRead") },
+    { key: "read", label: t("tabs.read") },
+    { key: "all", label: t("tabs.all") },
   ];
 
   const currentlyReading = books.filter((b) => b.reading_status === "reading");
 
-  if (!authToken) {
+  if (booting) {
     return (
-      <Login
-        onLogin={(token) => {
-          setAuth(token);
-          localStorage.setItem("authToken", token);
-          setLoading(true);
-          setAuthToken(token);
-        }}
-      />
+      <p style={{ color: "var(--color-text-secondary)", textAlign: "center", paddingTop: "40vh" }}>
+        {t("common.loading")}
+      </p>
     );
   }
 
-  setAuth(authToken);
+  if (!user) {
+    return (
+      <>
+        <Login onLogin={handleLogin} notice={notice} />
+        <Toast />
+      </>
+    );
+  }
 
   return (
     <div>
@@ -174,27 +224,64 @@ function App() {
           {APP_NAME}
         </button>
 
-        <div
-          className="nav-avatar"
-          onClick={() => setView("profile")}
-          style={{
-            width: "36px",
-            height: "36px",
-            borderRadius: "50%",
-            backgroundImage: profile?.photo_url
-              ? `url(${profile.photo_url})`
-              : "linear-gradient(155deg, var(--color-primary), var(--color-secondary))",
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            cursor: "pointer",
-          }}
-        />
+        <div className="nav-avatar" style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+          <button
+            onClick={() => {
+              setSelectedBook(null);
+              setView("settings");
+            }}
+            aria-label={t("nav.settings")}
+            title={t("nav.settings")}
+            style={{
+              background: "none",
+              border: "none",
+              padding: "4px",
+              cursor: "pointer",
+              display: "flex",
+              color: view === "settings" ? "var(--color-primary)" : "var(--color-text-secondary)",
+            }}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" />
+            </svg>
+          </button>
+          <button
+            onClick={() => {
+              setSelectedBook(null);
+              setView("profile");
+            }}
+            aria-label={t("nav.profile")}
+            style={{
+              width: "36px",
+              height: "36px",
+              borderRadius: "50%",
+              border: "none",
+              padding: 0,
+              backgroundImage: user.photo_url
+                ? `url(${user.photo_url})`
+                : "linear-gradient(155deg, var(--color-primary), var(--color-secondary))",
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              cursor: "pointer",
+              color: "var(--color-on-primary)",
+              fontWeight: 700,
+              fontFamily: "var(--font-ui)",
+            }}
+          >
+            {!user.photo_url && user.name.charAt(0).toUpperCase()}
+          </button>
+        </div>
       </nav>
 
       <div className="bottom-nav">
         <button
           className={`bottom-nav-item ${view === "library" ? "active" : ""}`}
-          onClick={() => setView("library")}
+          onClick={() => {
+            setSelectedBook(null);
+            setView("library");
+          }}
+          aria-label={t("nav.home")}
         >
           <svg
             viewBox="0 0 24 24"
@@ -208,7 +295,11 @@ function App() {
         </button>
         <button
           className={`bottom-nav-item ${view === "search" ? "active" : ""}`}
-          onClick={() => setView("search")}
+          onClick={() => {
+            setSelectedBook(null);
+            setView("search");
+          }}
+          aria-label={t("nav.search")}
         >
           <svg
             viewBox="0 0 24 24"
@@ -222,7 +313,11 @@ function App() {
         </button>
         <button
           className={`bottom-nav-item ${view === "profile" ? "active" : ""}`}
-          onClick={() => setView("profile")}
+          onClick={() => {
+            setSelectedBook(null);
+            setView("profile");
+          }}
+          aria-label={t("nav.profile")}
         >
           <svg
             viewBox="0 0 24 24"
@@ -236,11 +331,11 @@ function App() {
         </button>
       </div>
 
-      {view !== "addManual" && !selectedBook && (
+      {view !== "addManual" && view !== "settings" && !selectedBook && (
         <button
           className="fab-add"
           onClick={() => setView("addManual")}
-          aria-label="Adicionar livro"
+          aria-label={t("nav.add")}
         >
           <svg
             viewBox="0 0 24 24"
@@ -269,8 +364,16 @@ function App() {
       ) : view === "profile" ? (
         <Profile
           books={books}
-          profile={profile}
-          onProfileUpdated={handleProfileUpdated}
+          user={user}
+          onUserUpdated={setUser}
+          onOpenSettings={() => setView("settings")}
+          onLogout={handleLogout}
+        />
+      ) : view === "settings" ? (
+        <Settings
+          user={user}
+          onUserUpdated={setUser}
+          onBack={() => setView("library")}
           onLogout={handleLogout}
         />
       ) : view === "addManual" ? (
@@ -280,9 +383,13 @@ function App() {
           initialTitle={manualPrefill}
         />
       ) : loading ? (
-        <p style={{ color: "var(--color-text-primary)" }}>Carregando...</p>
+        <p className="page-padding" style={{ color: "var(--color-text-primary)" }}>
+          {t("common.loading")}
+        </p>
       ) : error ? (
-        <p style={{ color: "var(--color-error)" }}>{error}</p>
+        <p className="page-padding" style={{ color: "var(--color-error)" }}>
+          {error}
+        </p>
       ) : (
         <div
           className="page-padding"
@@ -306,7 +413,7 @@ function App() {
                 marginTop: "8px",
               }}
             >
-              O que vamos ler hoje?
+              {t("home.subtitle")}
             </p>
           </div>
 
@@ -338,7 +445,7 @@ function App() {
             <input
               value={quickSearch}
               onChange={(e) => setQuickSearch(e.target.value)}
-              placeholder="Buscar título ou autor..."
+              placeholder={t("home.quickSearch")}
               style={{
                 width: "100%",
                 padding: "12px 16px 12px 42px",
@@ -363,7 +470,7 @@ function App() {
                   marginBottom: "12px",
                 }}
               >
-                Continuando a leitura
+                {t("home.continueReading")}
               </h2>
               <div
                 style={{
@@ -442,7 +549,7 @@ function App() {
             <input
               value={librarySearch}
               onChange={(e) => setLibrarySearch(e.target.value)}
-              placeholder="Buscar na sua estante..."
+              placeholder={t("home.filter")}
               style={{
                 flex: 1,
                 minWidth: "180px",
@@ -476,10 +583,10 @@ function App() {
                 backgroundSize: "14px",
               }}
             >
-              <option value="title-asc">Título A-Z</option>
-              <option value="title-desc">Título Z-A</option>
-              <option value="author">Autor</option>
-              <option value="gender">Gênero</option>
+              <option value="title-asc">{t("sort.titleAsc")}</option>
+              <option value="title-desc">{t("sort.titleDesc")}</option>
+              <option value="author">{t("sort.author")}</option>
+              <option value="gender">{t("sort.gender")}</option>
             </select>
           </div>
 
@@ -494,15 +601,8 @@ function App() {
                 }}
               >
                 {librarySearch.trim()
-                  ? `Nenhum livro encontrado para "${librarySearch}" nessa lista.`
-                  : {
-                      favorites:
-                        "Nenhuma estrela nesse céu ainda. Favorite um livro para começar.",
-                      toRead:
-                        "Nada na fila por enquanto. Que tal buscar algo novo?",
-                      read: "As primeiras páginas de uma nova jornada de leitura.",
-                      all: "Sua estante ainda está esperando o primeiro capítulo.",
-                    }[activeTab]}
+                  ? t("empty.search", { q: librarySearch })
+                  : t(`empty.${activeTab}`)}
               </p>
               {!librarySearch.trim() && (
                 <button
@@ -510,7 +610,7 @@ function App() {
                   style={{
                     marginTop: "16px",
                     background: "var(--color-primary)",
-                    color: "#241119",
+                    color: "var(--color-on-primary)",
                     border: "none",
                     borderRadius: "var(--radius-sm)",
                     padding: "10px 20px",
@@ -518,7 +618,7 @@ function App() {
                     cursor: "pointer",
                   }}
                 >
-                  Buscar um livro
+                  {t("empty.cta")}
                 </button>
               )}
             </div>
@@ -555,12 +655,11 @@ function App() {
           borderTop: "1px solid var(--color-border)",
         }}
       >
-        © 2026 Lucas de Oliveira · Built with ♥.
-        {DEMO_MODE && (
+        {t("app.footer")}
+        {user.is_visitor && (
           <>
             <br />
-            Demo pública: os livros de exemplo são só para leitura e os seus
-            somem depois de um dia.
+            {t("app.visitorFooter")}
           </>
         )}
       </footer>

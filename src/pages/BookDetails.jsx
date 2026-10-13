@@ -2,8 +2,10 @@ import { useState } from "react";
 import { updateBook, deleteBook } from "../services/api";
 import { getCoverColor, getGenderColor } from "../utils/coverColor";
 import { notify } from "../utils/notify";
+import { useI18n } from "../i18n";
 
 export default function BookDetails({ book, onBack, onUpdated, onDeleted }) {
+  const { t } = useI18n();
   const [rating, setRating] = useState(book.grade || 0);
   const [favorite, setFavorite] = useState(book.favorite);
   const [comment, setComment] = useState(book.comment || "");
@@ -59,9 +61,7 @@ export default function BookDetails({ book, onBack, onUpdated, onDeleted }) {
   }
 
   async function handleDelete() {
-    const confirmed = window.confirm(
-      `Tem certeza que quer excluir "${book.title}"? Essa ação não pode ser desfeita.`,
-    );
+    const confirmed = window.confirm(t("details.confirmDelete", { title: book.title }));
     if (!confirmed) return;
 
     try {
@@ -102,7 +102,7 @@ export default function BookDetails({ book, onBack, onUpdated, onDeleted }) {
           cursor: "pointer",
         }}
       >
-        ← Voltar
+        {t("common.back")}
       </button>
 
       <div className="details-layout">
@@ -136,19 +136,19 @@ export default function BookDetails({ book, onBack, onUpdated, onDeleted }) {
                 }}
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
-                placeholder="Título:"
+                placeholder={t("details.titlePh")}
               />
               <input
                 style={inputStyle}
                 value={form.author}
                 onChange={(e) => setForm({ ...form, author: e.target.value })}
-                placeholder="Autor:"
+                placeholder={t("details.authorPh")}
               />
               <input
                 style={inputStyle}
                 value={form.gender}
                 onChange={(e) => setForm({ ...form, gender: e.target.value })}
-                placeholder="Genêro:"
+                placeholder={t("details.genderPh")}
               />
               <input
                 style={inputStyle}
@@ -156,21 +156,21 @@ export default function BookDetails({ book, onBack, onUpdated, onDeleted }) {
                 onChange={(e) =>
                   setForm({ ...form, cover_url: e.target.value })
                 }
-                placeholder="URL da capa (https://...)"
+                placeholder={t("details.coverPh")}
               />
               <textarea
                 style={{ ...inputStyle, fontFamily: "var(--font-reading)" }}
                 rows={5}
                 value={form.synopsis}
                 onChange={(e) => setForm({ ...form, synopsis: e.target.value })}
-                placeholder="Sinopse:"
+                placeholder={t("details.synopsisPh")}
               />
               <div style={{ display: "flex", gap: "8px" }}>
                 <button
                   onClick={handleSaveEdit}
                   style={{
                     background: "var(--color-primary)",
-                    color: "#241119",
+                    color: "var(--color-on-primary)",
                     border: "none",
                     borderRadius: "var(--radius-sm)",
                     padding: "8px 16px",
@@ -178,7 +178,7 @@ export default function BookDetails({ book, onBack, onUpdated, onDeleted }) {
                     fontWeight: 600,
                   }}
                 >
-                  Salvar
+                  {t("common.save")}
                 </button>
                 <button
                   onClick={() => setEditing(false)}
@@ -191,7 +191,7 @@ export default function BookDetails({ book, onBack, onUpdated, onDeleted }) {
                     cursor: "pointer",
                   }}
                 >
-                  Cancelar
+                  {t("common.cancel")}
                 </button>
               </div>
             </>
@@ -216,6 +216,8 @@ export default function BookDetails({ book, onBack, onUpdated, onDeleted }) {
                 </h1>
                 <button
                   onClick={() => setEditing(true)}
+                  aria-label={t("details.edit")}
+                  title={t("details.edit")}
                   style={{
                     background: "none",
                     border: "none",
@@ -248,8 +250,8 @@ export default function BookDetails({ book, onBack, onUpdated, onDeleted }) {
                     color: "var(--color-text-muted)",
                   }}
                 >
-                  <span className="example-badge">Exemplo</span>
-                  Livro de exemplo da demo: só para leitura.
+                  <span className="example-badge">{t("card.example")}</span>
+                  {t("details.exampleNote")}
                 </p>
               )}
 
@@ -312,9 +314,9 @@ export default function BookDetails({ book, onBack, onUpdated, onDeleted }) {
             }}
           >
             {[
-              { key: "toRead", label: "🌙 Quero ler" },
-              { key: "reading", label: "🌗 Lendo agora" },
-              { key: "read", label: "🌕 Lido" },
+              { key: "toRead", label: t("status.toRead") },
+              { key: "reading", label: t("status.reading") },
+              { key: "read", label: t("status.read") },
             ].map((opt) => (
               <button
                 key={opt.key}
@@ -327,7 +329,7 @@ export default function BookDetails({ book, onBack, onUpdated, onDeleted }) {
                       : "var(--color-card)",
                   color:
                     book.reading_status === opt.key
-                      ? "#241119"
+                      ? "var(--color-on-primary)"
                       : "var(--color-text-secondary)",
                   border: "1px solid var(--color-border)",
                   borderRadius: "var(--radius-pill)",
@@ -342,6 +344,7 @@ export default function BookDetails({ book, onBack, onUpdated, onDeleted }) {
 
             <button
               onClick={handleFavorite}
+              aria-label={favorite ? t("card.removeFavorite") : t("card.addFavorite")}
               className={heartPulsing ? "heart-pulse" : ""}
               style={{
                 background: "none",
@@ -367,7 +370,7 @@ export default function BookDetails({ book, onBack, onUpdated, onDeleted }) {
                 marginBottom: "6px",
               }}
             >
-              Seu comentário
+              {t("details.comment")}
             </label>
             <textarea
               value={comment}
@@ -383,7 +386,7 @@ export default function BookDetails({ book, onBack, onUpdated, onDeleted }) {
                 color: "var(--color-text-primary)",
                 fontFamily: "var(--font-ui)",
               }}
-              placeholder="seu comentário aqui..."
+              placeholder={t("details.commentPh")}
             />
           </div>
 
@@ -401,7 +404,7 @@ export default function BookDetails({ book, onBack, onUpdated, onDeleted }) {
               cursor: "pointer",
             }}
           >
-            Excluir livro
+            {t("details.delete")}
           </button>
         </div>
       </div>

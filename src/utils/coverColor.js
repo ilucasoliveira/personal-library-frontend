@@ -7,13 +7,13 @@ const PALETTE = [
 ];
 
 const GENDER_PALETTE = [
-  { bg: "rgba(124,147,195,0.15)", text: "var(--color-secondary)" },
-  { bg: "rgba(216,140,154,0.15)", text: "var(--color-primary)" },
-  { bg: "rgba(232,196,104,0.15)", text: "var(--color-accent)" },
-  { bg: "rgba(226,97,122,0.15)", text: "var(--color-favorite)" },
-  { bg: "rgba(127,184,143,0.15)", text: "var(--color-success)" },
-  { bg: "rgba(217,112,102,0.15)", text: "var(--color-error)" },
-  { bg: "rgba(230,182,85,0.15)", text: "var(--color-warning)" },
+  { bg: "color-mix(in srgb, var(--color-secondary) 16%, transparent)", text: "var(--color-secondary)" },
+  { bg: "color-mix(in srgb, var(--color-primary) 16%, transparent)", text: "var(--color-primary)" },
+  { bg: "color-mix(in srgb, var(--color-accent) 16%, transparent)", text: "var(--color-accent)" },
+  { bg: "color-mix(in srgb, var(--color-favorite) 16%, transparent)", text: "var(--color-favorite)" },
+  { bg: "color-mix(in srgb, var(--color-success) 16%, transparent)", text: "var(--color-success)" },
+  { bg: "color-mix(in srgb, var(--color-error) 16%, transparent)", text: "var(--color-error)" },
+  { bg: "color-mix(in srgb, var(--color-warning) 16%, transparent)", text: "var(--color-warning)" },
 ];
 
 export function getGenderColor(gender) {

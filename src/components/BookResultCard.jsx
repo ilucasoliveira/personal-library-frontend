@@ -1,4 +1,7 @@
+import { useI18n } from "../i18n";
+
 export default function BookResultCard({ book, onAdd }) {
+  const { t } = useI18n();
   return (
     <div
       style={{
@@ -72,7 +75,7 @@ export default function BookResultCard({ book, onAdd }) {
             style={{
               width: "100%",
               background: "var(--color-primary)",
-              color: "#241119",
+              color: "var(--color-on-primary)",
               border: "none",
               borderRadius: "var(--radius-sm)",
               padding: "8px 12px",
@@ -81,7 +84,7 @@ export default function BookResultCard({ book, onAdd }) {
               cursor: "pointer",
             }}
           >
-            Adicionar
+            {t("search.add")}
           </button>
         </div>
       </div>

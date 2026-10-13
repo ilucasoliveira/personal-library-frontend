@@ -1,35 +1,83 @@
+import { t } from "../i18n";
+
 const API_URL = import.meta.env.VITE_API_URL;
-let AUTH = null;
+const TOKEN_KEY = "token";
 
-export function setAuth(token) {
-  AUTH = token;
+// ---------- sessão (token JWT guardado no navegador) ----------
+
+let token = null;
+try {
+  token = localStorage.getItem(TOKEN_KEY);
+  // a versão antiga guardava usuário e senha (Basic Auth) nesta chave
+  localStorage.removeItem("authToken");
+} catch {
+  // sem localStorage o login vale só nesta aba
 }
 
-export function clearAuth() {
-  AUTH = null;
+export function getToken() {
+  return token;
 }
 
-function authHeader() {
-  return { Authorization: `Basic ${AUTH}` };
+export function saveToken(newToken) {
+  token = newToken;
+  try {
+    localStorage.setItem(TOKEN_KEY, newToken);
+  } catch {
+    // ignora
+  }
 }
 
-// mensagens em português para as respostas de erro da API
-const ERROR_MESSAGES = {
-  "Examples cannot be deleted or updated.":
-    "Este é um livro de exemplo da demo: ele não pode ser editado nem excluído. Adicione um livro seu para testar à vontade.",
-  "The profile cannot be changed in the demo.":
-    "Na demo o perfil não pode ser alterado.",
-  "Book not found.": "Livro não encontrado. Ele pode ter sido removido.",
+export function clearToken() {
+  token = null;
+  try {
+    localStorage.removeItem(TOKEN_KEY);
+  } catch {
+    // ignora
+  }
+}
+
+// o App escuta este evento para voltar à tela de login quando o token vence
+export const SESSION_EXPIRED = "app:session-expired";
+
+// ---------- erros da API traduzidos ----------
+
+const ERROR_KEYS = {
+  "Examples cannot be deleted or updated.": "err.example",
+  "The visitor account cannot be changed.": "err.visitorLocked",
+  "Book not found.": "err.notFound",
+  "Incorrect email or password.": "err.login",
+  "Email already registered.": "err.emailTaken",
+  "Sign up is disabled.": "err.signupDisabled",
+  "Incorrect password.": "err.wrongPassword",
+  "Book limit reached.": "err.bookLimit",
+  "Photo must be JPG, PNG, WEBP or GIF.": "err.photoType",
+  "Photo must be at most 2 MB.": "err.photoSize",
+  "Photo upload is not configured.": "err.photoUnavailable",
+  "The demo account is not ready yet.": "err.demoNotReady",
 };
 
-async function request(path, options, fallbackMessage) {
+export class ApiError extends Error {
+  constructor(message, status) {
+    super(message);
+    this.status = status;
+  }
+}
+
+async function request(path, { method = "GET", json, form, body, auth = true } = {}, fallbackKey = "err.generic") {
+  const headers = {};
+  if (auth && token) headers.Authorization = `Bearer ${token}`;
+  if (json !== undefined) {
+    headers["Content-Type"] = "application/json";
+    body = JSON.stringify(json);
+  } else if (form) {
+    body = new URLSearchParams(form);
+  }
+
   let response;
   try {
-    response = await fetch(`${API_URL}${path}`, options);
+    response = await fetch(`${API_URL}${path}`, { method, headers, body });
   } catch {
-    throw new Error(
-      "Não foi possível falar com o servidor. Verifique a conexão e tente de novo.",
-    );
+    throw new ApiError(t("err.network"), 0);
   }
 
   if (!response.ok) {
@@ -39,71 +87,78 @@ async function request(path, options, fallbackMessage) {
     } catch {
       // resposta sem corpo JSON
     }
-    throw new Error(ERROR_MESSAGES[detail] || fallbackMessage);
+
+    if (response.status === 401 && auth) {
+      clearToken();
+      window.dispatchEvent(new Event(SESSION_EXPIRED));
+    }
+
+    const key =
+      (typeof detail === "string" && ERROR_KEYS[detail]) || (response.status === 429 ? "err.tooMany" : fallbackKey);
+    throw new ApiError(t(key), response.status);
   }
 
   return response.status === 204 ? null : response.json();
 }
 
-export function getBooks() {
-  return request("/books", { headers: authHeader() }, "Erro ao buscar livros");
+// ---------- servidor e contas ----------
+
+export function ping() {
+  return request("/ping", { auth: false });
 }
 
-export function createBook(book) {
+export function login(email, password) {
+  return request("/auth/login", { method: "POST", form: { username: email, password }, auth: false }, "err.login");
+}
+
+export function register(data) {
+  return request("/auth/register", { method: "POST", json: data, auth: false });
+}
+
+export function loginAsVisitor() {
+  return request("/auth/visitor", { method: "POST", auth: false });
+}
+
+export function getMe() {
+  return request("/me");
+}
+
+export function updateMe(data) {
+  return request("/me", { method: "PUT", json: data }, "err.save");
+}
+
+export function changePassword(currentPassword, newPassword) {
   return request(
-    "/create",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...authHeader() },
-      body: JSON.stringify(book),
-    },
-    "Erro ao adicionar livro",
+    "/me/password",
+    { method: "PUT", json: { current_password: currentPassword, new_password: newPassword } },
+    "err.save",
   );
 }
 
-export function updateBook(id, data) {
-  return request(
-    `/update/${id}`,
-    {
-      method: "PUT",
-      headers: { "Content-Type": "application/json", ...authHeader() },
-      body: JSON.stringify(data),
-    },
-    "Erro ao atualizar livro",
-  );
-}
-
-export function deleteBook(id) {
-  return request(
-    `/delete/${id}`,
-    { method: "DELETE", headers: authHeader() },
-    "Erro ao excluir livro",
-  );
-}
-
-export function getProfile() {
-  return request("/profile", { headers: authHeader() }, "Erro ao buscar perfil");
-}
-
-export function updateProfile(data) {
-  return request(
-    "/profile",
-    {
-      method: "PUT",
-      headers: { "Content-Type": "application/json", ...authHeader() },
-      body: JSON.stringify(data),
-    },
-    "Erro ao atualizar perfil",
-  );
+export function deleteAccount(password) {
+  return request("/me", { method: "DELETE", json: { password } }, "err.save");
 }
 
 export function uploadProfilePhoto(file) {
   const formData = new FormData();
   formData.append("file", file);
+  return request("/me/photo", { method: "POST", body: formData }, "err.uploadPhoto");
+}
 
-  return request(
-    "/profile/upload",
-    { method: "POST", headers: authHeader(), body: formData },
-    "Erro ao enviar foto",
-  );
+// ---------- livros ----------
+
+export function getBooks() {
+  return request("/books", {}, "err.loadBooks");
+}
+
+export function createBook(book) {
+  return request("/create", { method: "POST", json: book }, "err.createBook");
+}
+
+export function updateBook(id, data) {
+  return request(`/update/${id}`, { method: "PUT", json: data }, "err.updateBook");
+}
+
+export function deleteBook(id) {
+  return request(`/delete/${id}`, { method: "DELETE" }, "err.deleteBook");
 }

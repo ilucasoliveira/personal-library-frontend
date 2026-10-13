@@ -11,7 +11,7 @@ export default defineConfig({
       manifest: {
         name: 'My Own BookShelf',
         short_name: 'BookShelf',
-        description: 'Sua biblioteca pessoal digital',
+        description: 'Sua estante de livros, do seu jeito. Your bookshelf, your way.',
         theme_color: '#14152B',
         background_color: '#14152B',
         display: 'standalone',

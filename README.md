@@ -1,10 +1,10 @@
 # 📚 My Own BookShelf · Personal Library Frontend
 
-A React interface for a personal digital library, built with a fully custom design system — no UI library, every component styled from scratch.
+A React interface for a personal digital library, built with a fully custom design system — no UI library, every component styled from scratch. Each person creates an account, keeps their own shelf and picks their own theme, accent color and language (Portuguese or English).
 
-**Live demo:** [my-own-bookshelf.vercel.app](https://my-own-bookshelf.vercel.app) (user `visitante`, password `biblioteca2026`)
+**Try it:** [my-own-bookshelf.vercel.app](https://my-own-bookshelf.vercel.app). Create an account, or click **"Continue as visitor"** to explore a sample shelf.
 
-This is the frontend counterpart to [personal-library-api](https://github.com/ilucasoliveira/personal-library-api), consuming its REST endpoints to manage books, reading status, ratings, and a personal profile.
+This is the frontend counterpart to [personal-library-api](https://github.com/ilucasoliveira/personal-library-api), consuming its REST endpoints for accounts, books, reading status, ratings and settings.
 
 ---
 
@@ -26,7 +26,10 @@ This is the frontend counterpart to [personal-library-api](https://github.com/il
 
 ## ✨ Features
 
-- Login screen backed by the API's HTTP Basic Auth — no credentials are baked into the client bundle, only entered at runtime and kept in the browser session
+- Sign up and log in with email and password; the API returns a token (JWT) that stays in the browser, so you stay logged in until it expires
+- **Themes**: Twilight, Paper (light), Sepia and Forest, plus an accent color (presets or any color). Applied instantly through CSS variables and saved on the account
+- **Two languages**: Portuguese and English, detected from the browser on first visit and saved on the account. No i18n library: one dictionary per language and a small React hook
+- Account settings: change name and password, delete the account
 - Animated twilight-gradient hero on the login screen, tying into the app's visual identity
 - Book search via Google Books API, with pagination and manual-entry fallback
 - Inline field validation on manual book entry — no browser alerts, errors surface next to the relevant field
@@ -35,11 +38,13 @@ This is the frontend counterpart to [personal-library-api](https://github.com/il
 - Book details view with inline editing, 5-star rating, favoriting, and personal comments
 - Reading status tracking with a "currently reading" carousel on the home screen
 - Time-aware greeting (good morning/afternoon/evening)
-- Profile page with reading statistics and photo upload
+- Profile page with reading statistics and a profile photo per account
 - Installable as a Progressive Web App (custom icons, standalone display, works on iOS/Android home screens)
 - Fully responsive layout (mobile bottom nav + floating action button, desktop top nav)
 - Custom design system built around CSS variables — no Tailwind, no component library
-- **Demo mode** (`VITE_DEMO_MODE=true`): the login screen shows the public credentials and a "log in as visitor" button, example books carry an "Example" badge, and API errors (such as editing an example book) appear as friendly messages instead of failing silently
+- **Public deployment** (`VITE_DEMO_MODE=true`): the login screen shows "Create account" and "Continue as visitor" right away (the API confirms through `/ping`); the visitor's example books carry an "Example" badge
+- API errors appear as friendly, translated messages instead of failing silently
+- A "waking up the server" hint when the free-tier API takes a while to answer
 
 ---
 
@@ -47,21 +52,24 @@ This is the frontend counterpart to [personal-library-api](https://github.com/il
 
 ```
 src/
-├── App.jsx                 # Main app shell, routing state, navigation
-├── index.css                # Design tokens (colors, spacing, typography) + global styles
+├── App.jsx                 # Main app shell: session, routing state, navigation
+├── index.css                # Design tokens + the four themes + global styles
+├── i18n.js                  # Portuguese and English dictionaries + useI18n hook
+├── theme.js                 # Applies theme and accent color, remembers the last one
 ├── components/
 │   ├── BookCard.jsx          # Library grid card
 │   └── BookResultCard.jsx    # Search result card
 ├── pages/
-│   ├── Login.jsx               # Login screen (HTTP Basic Auth)
+│   ├── Login.jsx               # Log in / sign up / visitor
+│   ├── Settings.jsx            # Theme, accent color, language, account
 │   ├── SearchBooks.jsx        # Google Books search + pagination
 │   ├── BookDetails.jsx        # Book detail/edit view
 │   ├── AddManual.jsx          # Manual book entry form
 │   └── Profile.jsx            # Profile + stats
 ├── components/Toast.jsx       # Quick on-screen messages (success and errors)
-├── config.js                 # App name and demo mode settings
+├── config.js                 # App name and public-deployment flag
 ├── services/
-│   ├── api.js                  # Backend REST client (runtime-provided auth token)
+│   ├── api.js                  # Backend REST client (bearer token, translated errors)
 │   └── googleBooks.js          # Google Books API client
 └── utils/
     └── coverColor.js            # Deterministic color generator for covers without an image
@@ -84,13 +92,13 @@ npm install
 # Set up environment variables
 cp .env.example .env
 # then fill in VITE_API_URL and VITE_GOOGLE_BOOKS_KEY
-# (and VITE_DEMO_MODE=true for a demo deployment)
+# (and VITE_DEMO_MODE=true for the public deployment)
 
 # Run the development server
 npm run dev
 ```
 
-Login credentials are entered at runtime through the login screen. They match the backend's `APP_USERNAME`/`APP_PASSWORD` values and are never stored in this project's source. The only exception is the public demo, whose credentials are public on purpose.
+Accounts live in the API. If sign up is turned off there (`ALLOW_SIGNUP=false`), the login screen hides "Create account".
 
 ---
 
@@ -98,18 +106,11 @@ Login credentials are entered at runtime through the login screen. They match th
 
 Deployed on **[Vercel](https://vercel.com)**, consuming the [personal-library-api](https://github.com/ilucasoliveira/personal-library-api) backend hosted on Render.
 
-### 🎭 Live demo
+### 🎭 Live app
 
 **Try it:** [my-own-bookshelf.vercel.app](https://my-own-bookshelf.vercel.app)
 
-| | |
-|---|---|
-| Username | `visitante` |
-| Password | `biblioteca2026` |
-
-Or just click **"Entrar como visitante"** on the login screen. The demo is a separate deployment (its own API and database), so you can explore a shelf of example books and add, rate and delete your own. Example books are read-only and the books you add are removed after a day.
-
-The main deployment is a private, password-protected personal library.
+Create an account to get your own shelf, or click **"Continue as visitor"** to explore a shelf of example books. On the visitor account, example books are read-only, the books you add are removed after a day, and theme and language are saved only in your browser.
 
 ---
 
