@@ -148,9 +148,6 @@ const pt = {
   "details.commentPh": "O que você achou? Só você vê isto.",
   "details.delete": "Excluir livro",
   "details.confirmDelete": 'Tem certeza que quer excluir "{title}"? Essa ação não pode ser desfeita.',
-  "status.toRead": "🌙 Quero ler",
-  "status.reading": "🌗 Lendo agora",
-  "status.read": "🌕 Lido",
 
   "search.placeholder": "Buscar por título, autor...",
   "search.button": "Buscar",
@@ -440,9 +437,6 @@ const en = {
   "details.commentPh": "What did you think? Only you can see this.",
   "details.delete": "Delete book",
   "details.confirmDelete": 'Are you sure you want to delete "{title}"? This can\'t be undone.',
-  "status.toRead": "🌙 Want to read",
-  "status.reading": "🌗 Reading",
-  "status.read": "🌕 Read",
 
   "search.placeholder": "Search by title, author...",
   "search.button": "Search",

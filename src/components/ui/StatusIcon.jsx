@@ -1,4 +1,5 @@
-// Luas desenhadas no lugar do emoji: crescente vazia (quero ler), meia (lendo), cheia (lido).
+// Status de leitura como um livro que vai se enchendo, na mesma linha da logo:
+// vazio (quero ler), metade (lendo), cheio (lido).
 // Só desenho: o texto do status vai sempre ao lado ou num rótulo para leitor de tela.
 export default function StatusIcon({ status, size = 16 }) {
   return (
@@ -10,9 +11,9 @@ export default function StatusIcon({ status, size = 16 }) {
       aria-hidden="true"
       focusable="false"
     >
-      <circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" strokeWidth="1.5" />
-      {status === "reading" && <path d="M8 1.75a6.25 6.25 0 0 1 0 12.5Z" fill="currentColor" />}
-      {status === "read" && <circle cx="8" cy="8" r="6.25" fill="currentColor" />}
+      <rect x="3.75" y="1.75" width="8.5" height="12.5" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.5" />
+      {status === "reading" && <rect x="4.5" y="8" width="7" height="5.5" rx="0.75" fill="currentColor" />}
+      {status === "read" && <rect x="4.5" y="2.5" width="7" height="11" rx="0.75" fill="currentColor" />}
     </svg>
   );
 }
