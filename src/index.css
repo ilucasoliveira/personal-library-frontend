@@ -269,6 +269,14 @@ body {
   color: var(--color-primary);
   text-decoration: none;
 }
+.toast__action--button {
+  padding: 0 4px;
+  border: none;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
 .toast__action:hover {
   text-decoration: underline;
   text-underline-offset: 3px;
@@ -2383,4 +2391,19 @@ textarea.field-input {
 }
 .seg button {
   font-size: 13px;
+}
+
+/* ----- fase 4: esqueleto da página do livro e "tirar a nota" ----- */
+.skeleton--title {
+  height: 36px;
+  width: 70%;
+  margin-bottom: 12px;
+}
+.skeleton--block {
+  height: 160px;
+  margin-top: 32px;
+}
+.rating__clear {
+  margin-left: var(--space-2);
+  font-size: var(--text-small);
 }

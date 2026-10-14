@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { updateBook, deleteBook } from "../services/api";
+import { updateBook } from "../services/api";
 import { notify } from "../utils/notify";
 import { useI18n } from "../i18n";
 import Cover from "../components/ui/Cover";
@@ -21,7 +21,7 @@ function formatDate(iso, lang) {
 
 // Página do livro: capa e título; os 3 controles do dia a dia (status, nota, favorito);
 // a nota pessoal; a sinopse; a ficha. Editar e excluir ficam no menu "⋯".
-export default function BookDetails({ book, onBack, onUpdated, onDeleted }) {
+export default function BookDetails({ book, onBack, onUpdated, onDelete }) {
   const { t, lang } = useI18n();
   const readOnly = book.is_example;
   const [editing, setEditing] = useState(false);
@@ -107,10 +107,9 @@ export default function BookDetails({ book, onBack, onUpdated, onDeleted }) {
         open={confirming}
         book={book}
         onClose={() => setConfirming(false)}
-        onDeleted={() => {
+        onConfirm={() => {
           setConfirming(false);
-          notify(t("details.deleted", { title: book.title }), "success");
-          onDeleted(book.id);
+          onDelete(book);
         }}
       />
     </div>
@@ -168,11 +167,21 @@ function Controls({ book, readOnly, onSave }) {
               aria-pressed={n === rating}
               disabled={readOnly}
               onMouseEnter={() => !readOnly && setHover(n)}
+              onMouseLeave={() => setHover(0)}
               onClick={() => n !== rating && change(setRating, rating, n, { grade: n })}
             >
               <span aria-hidden="true">★</span>
             </button>
           ))}
+          {rating > 0 && !readOnly && (
+            <button
+              type="button"
+              className="btn btn--text rating__clear"
+              onClick={() => change(setRating, rating, 0, { grade: null })}
+            >
+              {t("details.clearRating")}
+            </button>
+          )}
         </div>
       </div>
 
@@ -375,21 +384,10 @@ function EditForm({ book, onCancel, onSave, onDone }) {
   );
 }
 
-function DeleteDialog({ open, book, onClose, onDeleted }) {
+// confirmar só tira o livro da tela; a API apaga depois do prazo do "Desfazer" (App.jsx)
+function DeleteDialog({ open, book, onClose, onConfirm }) {
   const { t } = useI18n();
   const cancel = useRef(null);
-  const [busy, setBusy] = useState(false);
-
-  async function confirm() {
-    setBusy(true);
-    try {
-      await deleteBook(book.id);
-      onDeleted();
-    } catch (err) {
-      notify(err.message);
-      setBusy(false);
-    }
-  }
 
   return (
     <Dialog
@@ -402,7 +400,7 @@ function DeleteDialog({ open, book, onClose, onDeleted }) {
           <button ref={cancel} type="button" className="btn btn--secondary" onClick={onClose}>
             {t("common.cancel")}
           </button>
-          <Button variant="danger-solid" busy={busy} busyText={t("details.deleting")} onClick={confirm}>
+          <Button variant="danger-solid" onClick={onConfirm}>
             {t("details.deleteConfirm")}
           </Button>
         </>

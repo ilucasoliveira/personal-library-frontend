@@ -41,29 +41,34 @@ export const SESSION_EXPIRED = "app:session-expired";
 
 // ---------- erros da API traduzidos ----------
 
+// a API manda um código fixo em cada erro ({"detail": "...", "code": "book_not_found"});
+// o texto mostrado sai daqui, no idioma escolhido
 const ERROR_KEYS = {
-  "Examples cannot be deleted or updated.": "err.example",
-  "The visitor account cannot be changed.": "err.visitorLocked",
-  "Book not found.": "err.notFound",
-  "Incorrect email or password.": "err.login",
-  "Email already registered.": "err.emailTaken",
-  "Sign up is disabled.": "err.signupDisabled",
-  "Incorrect password.": "err.wrongPassword",
-  "Book limit reached.": "err.bookLimit",
-  "Photo must be JPG, PNG, WEBP or GIF.": "err.photoType",
-  "Photo must be at most 2 MB.": "err.photoSize",
-  "Photo upload is not configured.": "err.photoUnavailable",
-  "The demo account is not ready yet.": "err.demoNotReady",
+  example_read_only: "err.example",
+  visitor_locked: "err.visitorLocked",
+  book_not_found: "err.notFound",
+  invalid_credentials: "err.login",
+  email_taken: "err.emailTaken",
+  signup_disabled: "err.signupDisabled",
+  wrong_password: "err.wrongPassword",
+  book_limit: "err.bookLimit",
+  photo_type: "err.photoType",
+  photo_size: "err.photoSize",
+  photo_unavailable: "err.photoUnavailable",
+  demo_not_ready: "err.demoNotReady",
+  name_required: "err.nameRequired",
+  too_many_requests: "err.tooMany",
 };
 
 export class ApiError extends Error {
-  constructor(message, status) {
+  constructor(message, status, code = null) {
     super(message);
     this.status = status;
+    this.code = code;
   }
 }
 
-async function request(path, { method = "GET", json, form, body, auth = true } = {}, fallbackKey = "err.generic") {
+async function request(path, { method = "GET", json, form, body, auth = true, keepalive = false } = {}, fallbackKey = "err.generic") {
   const headers = {};
   if (auth && token) headers.Authorization = `Bearer ${token}`;
   if (json !== undefined) {
@@ -75,15 +80,15 @@ async function request(path, { method = "GET", json, form, body, auth = true } =
 
   let response;
   try {
-    response = await fetch(`${API_URL}${path}`, { method, headers, body });
+    response = await fetch(`${API_URL}${path}`, { method, headers, body, keepalive });
   } catch {
-    throw new ApiError(t("err.network"), 0);
+    throw new ApiError(t("err.network"), 0, "network");
   }
 
   if (!response.ok) {
-    let detail = "";
+    let code = null;
     try {
-      detail = (await response.json()).detail;
+      code = (await response.json()).code ?? null;
     } catch {
       // resposta sem corpo JSON
     }
@@ -93,9 +98,7 @@ async function request(path, { method = "GET", json, form, body, auth = true } =
       window.dispatchEvent(new Event(SESSION_EXPIRED));
     }
 
-    const key =
-      (typeof detail === "string" && ERROR_KEYS[detail]) || (response.status === 429 ? "err.tooMany" : fallbackKey);
-    throw new ApiError(t(key), response.status);
+    throw new ApiError(t(ERROR_KEYS[code] || fallbackKey), response.status, code);
   }
 
   return response.status === 204 ? null : response.json();
@@ -151,14 +154,19 @@ export function getBooks() {
   return request("/books", {}, "err.loadBooks");
 }
 
+export function getBook(id) {
+  return request(`/books/${id}`, {}, "err.notFound");
+}
+
 export function createBook(book) {
-  return request("/create", { method: "POST", json: book }, "err.createBook");
+  return request("/books", { method: "POST", json: book }, "err.createBook");
 }
 
+// só os campos enviados mudam; null apaga nota, comentário, sinopse ou capa
 export function updateBook(id, data) {
-  return request(`/update/${id}`, { method: "PUT", json: data }, "err.updateBook");
+  return request(`/books/${id}`, { method: "PATCH", json: data }, "err.updateBook");
 }
 
-export function deleteBook(id) {
-  return request(`/delete/${id}`, { method: "DELETE" }, "err.deleteBook");
+export function deleteBook(id, { keepalive = false } = {}) {
+  return request(`/books/${id}`, { method: "DELETE", keepalive }, "err.deleteBook");
 }

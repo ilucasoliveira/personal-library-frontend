@@ -7,8 +7,11 @@ import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import Toast from "./components/Toast";
 import AccountMenu from "./components/AccountMenu";
+import ErrorBoundary from "./components/ErrorBoundary";
 import {
   clearToken,
+  deleteBook,
+  getBook,
   getBooks,
   getMe,
   getToken,
@@ -60,6 +63,33 @@ const NAV_ITEMS = [
   },
 ];
 
+// cópia da estante no navegador: a estante aparece na hora ao abrir o app (e sem internet),
+// enquanto a lista atualizada chega da API
+const CACHE_PREFIX = "shelf:";
+function readCache(userId) {
+  try {
+    return JSON.parse(localStorage.getItem(CACHE_PREFIX + userId));
+  } catch {
+    return null;
+  }
+}
+function writeCache(userId, list) {
+  try {
+    localStorage.setItem(CACHE_PREFIX + userId, JSON.stringify(list));
+  } catch {
+    // navegador sem espaço ou sem localStorage: segue só com a API
+  }
+}
+function dropCache(userId) {
+  try {
+    localStorage.removeItem(CACHE_PREFIX + userId);
+  } catch {
+    // nada a limpar
+  }
+}
+
+const UNDO_MS = 6000;
+
 const PAGE_TITLES = {
   add: "nav.add",
   addManual: "nav.add",
@@ -77,6 +107,13 @@ function App() {
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  // pedindo a lista à API (com ou sem cópia na tela)
+  const [syncing, setSyncing] = useState(false);
+  // livro aberto por link direto enquanto a estante ainda carrega (vem de GET /books/{id})
+  const [directBook, setDirectBook] = useState(null);
+  // exclusões esperando o prazo do "Desfazer": id -> { book, timer }
+  const pendingDeletes = useRef(new Map());
+  const cacheReady = useRef(false);
   // posição da estante ao abrir um livro, para voltar ao mesmo ponto
   const libraryScroll = useRef(null);
   const main = useRef(null);
@@ -113,19 +150,56 @@ function App() {
 
   const userId = user?.id;
 
-  function loadBooks() {
-    setLoading(true);
+  function loadBooks({ background = false } = {}) {
+    if (!background) setLoading(true);
+    setSyncing(true);
     setError(null);
     getBooks()
-      .then(setBooks)
+      .then((list) => {
+        // livros com exclusão pendente (prazo do "Desfazer") não voltam para a tela
+        setBooks(list.filter((b) => !pendingDeletes.current.has(b.id)));
+        cacheReady.current = true;
+      })
       .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setLoading(false);
+        setSyncing(false);
+      });
   }
 
-  // a lista vem uma vez por conta; as telas atualizam a cópia local
+  // a lista vem uma vez por conta; com cópia salva, ela aparece já e a API só atualiza
   useEffect(() => {
-    if (userId) loadBooks();
+    if (!userId) return;
+    cacheReady.current = false;
+    const cached = readCache(userId);
+    if (Array.isArray(cached)) {
+      setBooks(cached);
+      setLoading(false);
+      cacheReady.current = true;
+      loadBooks({ background: true });
+    } else {
+      loadBooks();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
+
+  // toda mudança na estante vai para a cópia do navegador
+  useEffect(() => {
+    if (userId && cacheReady.current) writeCache(userId, books);
+  }, [books, userId]);
+
+  // fechando a aba no meio do prazo do "Desfazer": a exclusão segue mesmo assim
+  useEffect(() => {
+    function flush() {
+      for (const [id, pending] of pendingDeletes.current) {
+        clearTimeout(pending.timer);
+        deleteBook(id, { keepalive: true }).catch(() => {});
+      }
+      pendingDeletes.current.clear();
+    }
+    window.addEventListener("pagehide", flush);
+    return () => window.removeEventListener("pagehide", flush);
+  }, []);
 
   // rota que não existe: estante
   useEffect(() => {
@@ -150,7 +224,22 @@ function App() {
     // só a troca de tela conta: busca, aba e ordem mudam o ?... sem mexer na rolagem nem no foco
   }, [route.path, route.name]);
 
-  const selectedBook = route.name === "book" ? books.find((b) => b.id === route.id) : null;
+  const listBook = route.name === "book" ? books.find((b) => b.id === route.id) : null;
+  const waitingList = route.name === "book" && !listBook && (loading || syncing);
+
+  // link direto para um livro antes da estante chegar: busca só ele
+  useEffect(() => {
+    if (!waitingList || !userId) return;
+    let alive = true;
+    getBook(route.id)
+      .then((book) => alive && setDirectBook(book))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [waitingList, route.id, userId]);
+
+  const selectedBook = listBook || (route.name === "book" && directBook?.id === route.id ? directBook : null);
 
   // título da aba do navegador acompanha a tela
   useEffect(() => {
@@ -161,10 +250,47 @@ function App() {
 
   function handleUpdated(updatedBook) {
     setBooks((prev) => prev.map((b) => (b.id === updatedBook.id ? updatedBook : b)));
+    setDirectBook((prev) => (prev?.id === updatedBook.id ? updatedBook : prev));
   }
 
-  function handleDeleted(deletedId) {
-    setBooks((prev) => prev.filter((b) => b.id !== deletedId));
+  function restoreBook(book) {
+    setBooks((prev) => (prev.some((b) => b.id === book.id) ? prev : [...prev, book].sort((a, b) => a.id - b.id)));
+  }
+
+  async function commitDelete(id) {
+    const pending = pendingDeletes.current.get(id);
+    if (!pending) return;
+    clearTimeout(pending.timer);
+    pendingDeletes.current.delete(id);
+    try {
+      await deleteBook(id);
+    } catch (err) {
+      restoreBook(pending.book);
+      notify(err.message);
+    }
+  }
+
+  function undoDelete(id) {
+    const pending = pendingDeletes.current.get(id);
+    if (!pending) return;
+    clearTimeout(pending.timer);
+    pendingDeletes.current.delete(id);
+    restoreBook(pending.book);
+    notify(t("details.restored", { title: pending.book.title }), "success");
+  }
+
+  // excluir some com o livro na hora, mas só apaga na API depois do prazo do "Desfazer"
+  function handleDelete(book) {
+    setBooks((prev) => prev.filter((b) => b.id !== book.id));
+    setDirectBook((prev) => (prev?.id === book.id ? null : prev));
+    const timer = setTimeout(() => commitDelete(book.id), UNDO_MS);
+    pendingDeletes.current.set(book.id, { book, timer });
+    notify(
+      t("details.deleted", { title: book.title }),
+      "success",
+      { label: t("common.undo"), onClick: () => undoDelete(book.id) },
+      UNDO_MS,
+    );
     goBack("/");
   }
 
@@ -184,9 +310,14 @@ function App() {
   }
 
   function handleLogout() {
+    // exclusões no prazo do "Desfazer" seguem antes de o token sair
+    for (const id of [...pendingDeletes.current.keys()]) commitDelete(id);
+    // em computador compartilhado, a estante não fica guardada depois de sair
+    if (userId) dropCache(userId);
     clearToken();
     setUser(null);
     setBooks([]);
+    setDirectBook(null);
     navigate("/", { replace: true });
   }
 
@@ -257,12 +388,22 @@ function App() {
         book={selectedBook}
         onBack={() => goBack("/")}
         onUpdated={handleUpdated}
-        onDeleted={handleDeleted}
+        onDelete={handleDelete}
       />
-    ) : loading ? (
-      <p className="page shelf-status">
-        {t("common.loading")}
-      </p>
+    ) : waitingList ? (
+      <div className="page book-page" aria-busy="true">
+        <p className="sr-only" role="status">
+          {t("common.loading")}
+        </p>
+        <div className="book-page__layout" aria-hidden="true">
+          <span className="cover skeleton book-page__cover" />
+          <div>
+            <span className="skeleton skeleton--title" />
+            <span className="skeleton skeleton--line skeleton--short" />
+            <span className="skeleton skeleton--block" />
+          </div>
+        </div>
+      </div>
     ) : (
       <div className="page">
         <h1 className="page-title">
@@ -310,7 +451,7 @@ function App() {
         loading={loading}
         error={error}
         query={route.query}
-        onRetry={loadBooks}
+        onRetry={() => loadBooks({ background: books.length > 0 })}
         onOpenBook={() => {
           libraryScroll.current = window.scrollY;
         }}
@@ -338,7 +479,7 @@ function App() {
       </header>
 
       <main id="conteudo" ref={main} tabIndex={-1} className="app-main">
-        {page}
+        <ErrorBoundary key={route.path}>{page}</ErrorBoundary>
       </main>
 
       <footer className="app-footer">

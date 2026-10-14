@@ -124,13 +124,14 @@ export default function Library({ books, loading, error, query, onRetry, onOpenB
     readThisYear === 1 ? t("shelf.readYearOne", { year }) : t("shelf.readYear", { n: readThisYear, year }),
   ].join(" · ");
 
-  const ready = !loading && !error;
+  // com uma cópia salva, a estante continua na tela mesmo se a atualização falhar
+  const hasBooks = !loading && books.length > 0;
 
   return (
     <div className="page shelf">
       <header className="page-header">
         <h1 className="page-title">{t("shelf.title")}</h1>
-        {ready && books.length > 0 && <p className="page-summary">{summary}</p>}
+        {hasBooks && <p className="page-summary">{summary}</p>}
       </header>
 
       {loading && (
@@ -152,14 +153,17 @@ export default function Library({ books, loading, error, query, onRetry, onOpenB
 
       {error && !loading && (
         <div className="banner banner--error" role="alert">
-          <span>{error}</span>
+          <span>
+            {error}
+            {books.length > 0 && ` ${t("shelf.stale")}`}
+          </span>
           <Button variant="secondary" onClick={onRetry}>
             {t("common.retry")}
           </Button>
         </div>
       )}
 
-      {ready && books.length === 0 && (
+      {!loading && !error && books.length === 0 && (
         <div className="empty-state">
           <svg className="empty-state__art" viewBox="0 0 160 96" aria-hidden="true" focusable="false">
             <path d="M58 20a18 18 0 1 0 22 22 14 14 0 0 1-22-22Z" fill="none" stroke="currentColor" strokeWidth="1.5" />
@@ -179,7 +183,7 @@ export default function Library({ books, loading, error, query, onRetry, onOpenB
         </div>
       )}
 
-      {ready && books.length > 0 && (
+      {hasBooks && (
         <>
           {reading.length > 0 && (
             <section className="reading-strip" aria-labelledby="reading-title">
