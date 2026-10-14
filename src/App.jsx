@@ -203,7 +203,7 @@ function App() {
 
   if (booting) {
     return (
-      <p style={{ color: "var(--color-text-secondary)", textAlign: "center", paddingTop: "40vh" }}>
+      <p className="app-booting">
         {t("common.loading")}
       </p>
     );
@@ -260,16 +260,16 @@ function App() {
         onDeleted={handleDeleted}
       />
     ) : loading ? (
-      <p className="page-padding" style={{ color: "var(--color-text-secondary)" }}>
+      <p className="page shelf-status">
         {t("common.loading")}
       </p>
     ) : (
-      <div className="page-padding">
-        <h1 style={{ fontFamily: "var(--font-display)", color: "var(--color-text-primary)" }}>
+      <div className="page">
+        <h1 className="page-title">
           {t("book.missingTitle")}
         </h1>
-        <p style={{ color: "var(--color-text-secondary)" }}>{error || t("err.notFound")}</p>
-        <Link to="/" className="btn-primary">
+        <p className="empty-state__text">{error || t("err.notFound")}</p>
+        <Link to="/" className="btn btn--primary">
           {t("common.backToShelf")}
         </Link>
       </div>

@@ -463,13 +463,14 @@ body {
 
 .field {
   width: 100%;
-  padding: 10px 14px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border);
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-strong);
   background: var(--color-background);
   color: var(--color-text-primary);
   font-family: var(--font-ui);
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .field:focus,
@@ -484,7 +485,8 @@ body {
 
 .field-label {
   display: block;
-  font-size: 12px;
+  font-size: var(--text-small);
+  font-weight: 500;
   color: var(--color-text-secondary);
   margin: 0 0 6px;
 }
@@ -497,7 +499,7 @@ body {
 
 .form-error {
   color: var(--color-error);
-  font-size: 13px;
+  font-size: var(--text-small);
   margin: 0 0 12px;
 }
 
@@ -628,6 +630,7 @@ body {
 }
 
 .theme-card__preview {
+  background: var(--p0);
   display: flex;
   align-items: flex-end;
   gap: 6px;
@@ -640,11 +643,23 @@ body {
   width: 16px;
   border-radius: 3px;
 }
+.theme-card__preview span:nth-child(1) {
+  height: 40px;
+  background: var(--p1);
+}
+.theme-card__preview span:nth-child(2) {
+  height: 28px;
+  background: var(--p2);
+}
+.theme-card__preview span:nth-child(3) {
+  height: 18px;
+  background: var(--p3);
+}
 
 .theme-card__name {
   display: block;
   padding: 8px 10px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--color-text-primary);
   background: var(--color-background);
@@ -660,6 +675,7 @@ body {
 .swatch {
   width: 32px;
   height: 32px;
+  background: var(--swatch);
   border-radius: 50%;
   border: 2px solid var(--color-card);
   outline: 2px solid transparent;
@@ -676,6 +692,13 @@ body {
   position: relative;
   overflow: hidden;
   background: conic-gradient(#e2617a, #e8c468, #7fc8a0, #7c93c3, #b48ead, #e2617a);
+}
+
+.swatch--default {
+  background: linear-gradient(135deg, var(--color-card) 50%, var(--color-border-strong) 50%);
+}
+.swatch--custom[data-active="true"] {
+  background: var(--swatch);
 }
 
 .swatch--custom:focus-within {
@@ -2243,4 +2266,121 @@ textarea.field-input {
   .month-chart__table {
     margin-top: 64px;
   }
+}
+
+/* =====================================================================
+   Configurações e entrada: só os tokens novos sobre o que já existia
+   ===================================================================== */
+.settings {
+  max-width: calc(560px + 80px);
+}
+.settings__note {
+  margin: 0 0 var(--space-5);
+}
+.settings-section {
+  padding: var(--space-5);
+  border-radius: var(--radius-md);
+}
+.settings__subhead {
+  margin-top: var(--space-5) !important;
+}
+.settings__value {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-small);
+  line-height: 20px;
+  color: var(--color-text-secondary);
+}
+.settings-section--danger {
+  border-color: color-mix(in srgb, var(--color-error) 45%, var(--color-border));
+}
+.settings-section--danger h2 {
+  color: var(--color-error);
+}
+
+.app-booting {
+  padding-top: 40vh;
+  text-align: center;
+  font-family: var(--font-ui);
+  color: var(--color-text-secondary);
+}
+
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  font-family: var(--font-ui);
+}
+.auth-card {
+  max-width: 400px;
+  padding: var(--space-6);
+}
+.auth-card__top {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--space-2);
+}
+.auth-card__brand {
+  justify-content: center;
+  margin: 0 auto 6px;
+  font-size: 24px;
+}
+.auth-card__tagline {
+  margin: 0 0 var(--space-5);
+  text-align: center;
+  font-family: var(--font-reading);
+  font-size: 15px;
+  line-height: 24px;
+  color: var(--color-text-secondary);
+}
+.auth-card__modes {
+  margin-bottom: var(--space-4);
+}
+.auth-card__submit {
+  width: 100%;
+  min-height: 44px;
+}
+.password-field {
+  position: relative;
+}
+.password-field .field {
+  padding-right: 48px;
+}
+.password-field__toggle {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  translate: 0 -50%;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+.password-field__toggle:hover {
+  color: var(--color-text-primary);
+}
+.demo-box {
+  border-radius: var(--radius-md);
+  font-size: var(--text-small);
+}
+.demo-box__title {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--color-text-primary);
+}
+.demo-box__text {
+  margin: 0 0 12px;
+}
+.demo-box button {
+  min-height: 40px;
+  border-radius: var(--radius-md);
+}
+.seg button {
+  font-size: 13px;
 }

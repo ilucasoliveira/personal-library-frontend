@@ -5,12 +5,12 @@ import { login, loginAsVisitor, ping, register } from "../services/api";
 
 function EyeIcon({ open }) {
   return open ? (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18" aria-hidden="true">
       <path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-5 0-9.27-3.11-11-8 .77-2.19 2.15-4.1 3.94-5.5M9.9 4.24A9.12 9.12 0 0 1 12 4c5 0 9.27 3.11 11 8a13.16 13.16 0 0 1-1.67 2.68M14.12 14.12A3 3 0 1 1 9.88 9.88" />
       <line x1="1" y1="1" x2="23" y2="23" />
     </svg>
   ) : (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18" aria-hidden="true">
       <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z" />
       <circle cx="12" cy="12" r="3" />
     </svg>
@@ -86,19 +86,9 @@ export default function Login({ onLogin, notice }) {
   }
 
   return (
-    <div
-      className="twilight-hero-bg"
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontFamily: "var(--font-ui)",
-        padding: "20px",
-      }}
-    >
+    <main className="auth-page twilight-hero-bg">
       <div className="auth-card">
-        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "8px" }}>
+        <div className="auth-card__top">
           <div className="seg" role="group" aria-label={t("settings.language")}>
             {["pt", "en"].map((code) => (
               <button key={code} type="button" aria-pressed={lang === code} onClick={() => setLanguage(code)}>
@@ -108,15 +98,13 @@ export default function Login({ onLogin, notice }) {
           </div>
         </div>
 
-        <h1 className="nav-brand" style={{ justifyContent: "center", fontSize: "22px", margin: "0 auto 6px" }}>
-          <svg className="moon" viewBox="0 0 24 24" fill="currentColor" style={{ width: "18px", height: "18px" }}>
+        <h1 className="nav-brand auth-card__brand">
+          <svg className="moon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M12 2a10 10 0 1 0 9.8 12.1A8 8 0 0 1 12 2Z" />
           </svg>
           {APP_NAME}
         </h1>
-        <p style={{ textAlign: "center", color: "var(--color-text-secondary)", fontSize: "14px", margin: "0 0 22px" }}>
-          {t("auth.tagline")}
-        </p>
+        <p className="auth-card__tagline">{t("auth.tagline")}</p>
 
         {notice && (
           <p className="form-error" role="status">
@@ -125,7 +113,7 @@ export default function Login({ onLogin, notice }) {
         )}
 
         {flags.signup && (
-          <div className="seg seg--block" role="group" style={{ marginBottom: "18px" }}>
+          <div className="seg seg--block auth-card__modes" role="group" aria-label={t("auth.mode")}>
             <button type="button" aria-pressed={!isRegister} onClick={() => switchMode("login")}>
               {t("auth.login")}
             </button>
@@ -170,7 +158,7 @@ export default function Login({ onLogin, notice }) {
             <label className="field-label" htmlFor="auth-password">
               {t("auth.password")}
             </label>
-            <div style={{ position: "relative" }}>
+            <div className="password-field">
               <input
                 id="auth-password"
                 className="field"
@@ -178,24 +166,13 @@ export default function Login({ onLogin, notice }) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete={isRegister ? "new-password" : "current-password"}
-                style={{ paddingRight: "42px" }}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword((prev) => !prev)}
-                aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
-                style={{
-                  position: "absolute",
-                  right: "10px",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  padding: "4px",
-                  display: "flex",
-                  color: "var(--color-text-muted)",
-                }}
+                aria-label={t("auth.showPassword")}
+                aria-pressed={showPassword}
+                className="password-field__toggle"
               >
                 <EyeIcon open={showPassword} />
               </button>
@@ -210,7 +187,7 @@ export default function Login({ onLogin, notice }) {
           )}
           {waking && <p className="field-hint">{t("auth.waking")}</p>}
 
-          <button type="submit" className="btn-primary" disabled={loading} style={{ width: "100%" }}>
+          <button type="submit" className="btn btn--primary auth-card__submit" disabled={loading}>
             {loading
               ? isRegister
                 ? t("auth.creating")
@@ -223,16 +200,14 @@ export default function Login({ onLogin, notice }) {
 
         {flags.demo && (
           <div className="demo-box">
-            <strong style={{ display: "block", color: "var(--color-text-primary)", marginBottom: "4px" }}>
-              {t("auth.demoTitle")}
-            </strong>
-            <p style={{ margin: "0 0 12px" }}>{t("auth.demoText")}</p>
+            <strong className="demo-box__title">{t("auth.demoTitle")}</strong>
+            <p className="demo-box__text">{t("auth.demoText")}</p>
             <button type="button" disabled={loading} onClick={() => run(loginAsVisitor)}>
               {t("auth.visitor")}
             </button>
           </div>
         )}
       </div>
-    </div>
+    </main>
   );
 }

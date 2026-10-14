@@ -3,6 +3,8 @@ import { useI18n } from "../i18n";
 import { changePassword, deleteAccount, saveToken, updateMe } from "../services/api";
 import { ACCENTS, THEMES, applyAppearance, readSavedAppearance } from "../theme";
 import { notify } from "../utils/notify";
+import Button from "../components/ui/Button";
+import Dialog from "../components/ui/Dialog";
 
 export default function Settings({ user, onUserUpdated, onBack, onLogout }) {
   const { lang, t, setLanguage } = useI18n();
@@ -16,6 +18,8 @@ export default function Settings({ user, onUserUpdated, onBack, onLogout }) {
   const [passwords, setPasswords] = useState({ current: "", next: "" });
   const [deletePassword, setDeletePassword] = useState("");
   const [busy, setBusy] = useState("");
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const keepAccount = useRef(null);
   const saveTimer = useRef(0);
   const pendingSave = useRef(null);
 
@@ -99,14 +103,13 @@ export default function Settings({ user, onUserUpdated, onBack, onLogout }) {
     }
   }
 
-  async function handleDelete(e) {
-    e.preventDefault();
-    if (!window.confirm(t("settings.deleteConfirm"))) return;
+  async function handleDelete() {
     setBusy("delete");
     try {
       await deleteAccount(deletePassword);
       onLogout();
     } catch (err) {
+      setConfirmingDelete(false);
       notify(err.message);
       setBusy("");
     }
@@ -115,39 +118,16 @@ export default function Settings({ user, onUserUpdated, onBack, onLogout }) {
   const customAccent = appearance.accent && !ACCENTS.includes(appearance.accent);
 
   return (
-    <div className="page-padding" style={{ background: "var(--color-background)", minHeight: "100vh" }}>
-      <div className="settings">
-        <button
-          onClick={onBack}
-          style={{
-            marginBottom: "16px",
-            background: "none",
-            border: "none",
-            color: "var(--color-text-secondary)",
-            cursor: "pointer",
-            padding: 0,
-            fontFamily: "var(--font-ui)",
-          }}
-        >
-          {t("common.back")}
-        </button>
+    <div className="page settings">
+      <button type="button" className="btn btn--text book-page__back" onClick={onBack}>
+        {t("common.back")}
+      </button>
+      <header className="page-header">
+        <h1 className="page-title">{t("settings.title")}</h1>
+      </header>
 
-        <h1
-          style={{
-            fontFamily: "var(--font-display)",
-            color: "var(--color-text-primary)",
-            fontSize: "26px",
-            margin: "0 0 20px",
-          }}
-        >
-          {t("settings.title")}
-        </h1>
+      {isVisitor && <p className="book-page__note settings__note">{t("settings.visitorNote")}</p>}
 
-        {isVisitor && (
-          <p className="demo-box" style={{ margin: "0 0 16px" }}>
-            {t("settings.visitorNote")}
-          </p>
-        )}
 
         <section className="settings-section" aria-labelledby="appearance-title">
           <h2 id="appearance-title">{t("settings.theme")}</h2>
@@ -160,28 +140,34 @@ export default function Settings({ user, onUserUpdated, onBack, onLogout }) {
                 aria-pressed={appearance.theme === theme.id}
                 onClick={() => changeAppearance({ theme: theme.id })}
               >
-                <span className="theme-card__preview" style={{ background: theme.preview[0] }}>
-                  <span style={{ height: "40px", background: theme.preview[1] }} />
-                  <span style={{ height: "28px", background: theme.preview[2] }} />
-                  <span style={{ height: "18px", background: theme.preview[3] }} />
+                {/* as cores da miniatura vêm do próprio tema (theme.js) */}
+                <span
+                  className="theme-card__preview"
+                  style={{
+                    "--p0": theme.preview[0],
+                    "--p1": theme.preview[1],
+                    "--p2": theme.preview[2],
+                    "--p3": theme.preview[3],
+                  }}
+                >
+                  <span />
+                  <span />
+                  <span />
                 </span>
                 <span className="theme-card__name">{t(`theme.${theme.id}`)}</span>
               </button>
             ))}
           </div>
 
-          <h2 style={{ marginTop: "22px" }}>{t("settings.accent")}</h2>
+          <h2 className="settings__subhead">{t("settings.accent")}</h2>
           <div className="swatches">
             <button
               type="button"
-              className="swatch"
+              className="swatch swatch--default"
               aria-pressed={!appearance.accent}
               aria-label={t("settings.accentDefault")}
               title={t("settings.accentDefault")}
               onClick={() => changeAppearance({ accent: null })}
-              style={{
-                background: "linear-gradient(135deg, var(--color-card) 50%, var(--color-border) 50%)",
-              }}
             />
             {ACCENTS.map((color) => (
               <button
@@ -192,14 +178,14 @@ export default function Settings({ user, onUserUpdated, onBack, onLogout }) {
                 aria-label={color}
                 title={color}
                 onClick={() => changeAppearance({ accent: color })}
-                style={{ background: color }}
+                style={{ "--swatch": color }}
               />
             ))}
             <label
               className="swatch swatch--custom"
               data-active={customAccent ? "true" : "false"}
               title={t("settings.accentCustom")}
-              style={customAccent ? { background: appearance.accent } : undefined}
+              style={customAccent ? { "--swatch": appearance.accent } : undefined}
             >
               <input
                 type="color"
@@ -242,11 +228,11 @@ export default function Settings({ user, onUserUpdated, onBack, onLogout }) {
                 </div>
                 <div>
                   <span className="field-label">{t("settings.email")}</span>
-                  <p style={{ margin: 0, color: "var(--color-text-secondary)", fontSize: "14px" }}>{user.email}</p>
+                  <p className="settings__value">{user.email}</p>
                 </div>
-                <button type="submit" className="btn-primary" disabled={busy === "name" || name.trim() === user.name}>
+                <Button type="submit" busy={busy === "name"} busyText={t("details.saving")} disabled={name.trim() === user.name}>
                   {t("settings.saveName")}
-                </button>
+                </Button>
               </form>
             </section>
 
@@ -280,37 +266,36 @@ export default function Settings({ user, onUserUpdated, onBack, onLogout }) {
                   />
                   <p className="field-hint">{t("auth.passwordHint")}</p>
                 </div>
-                <button
+                <Button
                   type="submit"
-                  className="btn-primary"
-                  disabled={busy === "password" || !passwords.current || !passwords.next}
+                  busy={busy === "password"}
+                  busyText={t("details.saving")}
+                  disabled={!passwords.current || !passwords.next}
                 >
                   {t("settings.changePassword")}
-                </button>
+                </Button>
               </form>
             </section>
           </>
         )}
 
         <section className="settings-section">
-          <button type="button" className="btn-ghost" onClick={onLogout}>
+          <Button variant="secondary" onClick={onLogout}>
             {t("profile.logout")}
-          </button>
+          </Button>
         </section>
 
         {!isVisitor && (
-          <section
-            className="settings-section"
-            aria-labelledby="delete-title"
-            style={{ borderColor: "color-mix(in srgb, var(--color-error) 45%, var(--color-border))" }}
-          >
-            <h2 id="delete-title" style={{ color: "var(--color-error)" }}>
-              {t("settings.delete")}
-            </h2>
-            <p style={{ margin: "0 0 12px", color: "var(--color-text-secondary)", fontSize: "14px" }}>
-              {t("settings.deleteText")}
-            </p>
-            <form onSubmit={handleDelete} className="stack">
+          <section className="settings-section settings-section--danger" aria-labelledby="delete-title">
+            <h2 id="delete-title">{t("settings.delete")}</h2>
+            <p className="settings__value">{t("settings.deleteText")}</p>
+            <form
+              className="stack"
+              onSubmit={(e) => {
+                e.preventDefault();
+                setConfirmingDelete(true);
+              }}
+            >
               <div>
                 <label className="field-label" htmlFor="delete-password">
                   {t("settings.deletePassword")}
@@ -324,13 +309,36 @@ export default function Settings({ user, onUserUpdated, onBack, onLogout }) {
                   onChange={(e) => setDeletePassword(e.target.value)}
                 />
               </div>
-              <button type="submit" className="btn-danger" disabled={busy === "delete" || !deletePassword}>
+              <Button type="submit" variant="danger" disabled={!deletePassword}>
                 {t("settings.deleteButton")}
-              </button>
+              </Button>
             </form>
           </section>
         )}
-      </div>
+
+      <Dialog
+        open={confirmingDelete}
+        title={t("settings.deleteConfirm")}
+        onClose={() => setConfirmingDelete(false)}
+        initialFocus={keepAccount}
+        actions={
+          <>
+            <button
+              ref={keepAccount}
+              type="button"
+              className="btn btn--secondary"
+              onClick={() => setConfirmingDelete(false)}
+            >
+              {t("common.cancel")}
+            </button>
+            <Button variant="danger-solid" busy={busy === "delete"} busyText={t("details.deleting")} onClick={handleDelete}>
+              {t("settings.deleteButton")}
+            </Button>
+          </>
+        }
+      >
+        <p>{t("settings.deleteText")}</p>
+      </Dialog>
     </div>
   );
 }

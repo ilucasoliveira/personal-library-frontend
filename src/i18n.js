@@ -239,7 +239,8 @@ const pt = {
   "theme.sepia": "Sépia",
   "theme.forest": "Floresta",
 
-  "auth.tagline": "Sua estante de livros, do seu jeito.",
+  "auth.tagline": "Guarde o que você leu, está lendo e quer ler, com nota e anotação, num lugar só.",
+  "auth.mode": "Entrar ou criar conta",
   "auth.login": "Entrar",
   "auth.register": "Criar conta",
   "auth.name": "Nome",
@@ -522,7 +523,8 @@ const en = {
   "theme.sepia": "Sepia",
   "theme.forest": "Forest",
 
-  "auth.tagline": "Your bookshelf, your way.",
+  "auth.tagline": "Keep what you've read, are reading and want to read, with ratings and notes, in one place.",
+  "auth.mode": "Log in or sign up",
   "auth.login": "Log in",
   "auth.register": "Sign up",
   "auth.name": "Name",
