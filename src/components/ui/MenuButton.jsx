@@ -1,8 +1,8 @@
 import { useEffect, useId, useRef, useState } from "react";
 
-// Botão "⋯" que abre uma lista de ações raras. Fecha com Esc (foco volta ao botão),
+// Botão ("⋯" por padrão, ou o ícone passado em icon) que abre uma lista de ações. Fecha com Esc (foco volta ao botão),
 // clique fora, foco saindo da lista ou ao escolher uma ação.
-export default function MenuButton({ label, items }) {
+export default function MenuButton({ label, items, icon, className = "" }) {
   const [open, setOpen] = useState(false);
   const wrapper = useRef(null);
   const button = useRef(null);
@@ -30,7 +30,7 @@ export default function MenuButton({ label, items }) {
   }, [open]);
 
   return (
-    <div className="menu" ref={wrapper}>
+    <div className={`menu ${className}`} ref={wrapper}>
       <button
         ref={button}
         type="button"
@@ -41,11 +41,13 @@ export default function MenuButton({ label, items }) {
         aria-controls={menuId}
         onClick={() => setOpen((value) => !value)}
       >
-        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
-          <circle cx="5" cy="12" r="1.75" />
-          <circle cx="12" cy="12" r="1.75" />
-          <circle cx="19" cy="12" r="1.75" />
-        </svg>
+        {icon || (
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+            <circle cx="5" cy="12" r="1.75" />
+            <circle cx="12" cy="12" r="1.75" />
+            <circle cx="19" cy="12" r="1.75" />
+          </svg>
+        )}
       </button>
       {open && (
         <div id={menuId} className="menu__list">

@@ -1,192 +1,227 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createBook } from "../services/api";
 import { notify } from "../utils/notify";
+import { bookKey } from "../utils/bookKey";
 import { useI18n } from "../i18n";
+import Button from "../components/ui/Button";
+import Cover from "../components/ui/Cover";
+import Dialog from "../components/ui/Dialog";
+import StatusIcon from "../components/ui/StatusIcon";
+import { Link } from "../components/Link";
 
-export default function AddManual({ onCreated, onCancel, initialTitle = "" }) {
+const REQUIRED = ["title", "author", "gender"];
+const STATUSES = ["toRead", "reading", "read"];
+
+function isUrl(text) {
+  return /^https?:\/\/\S+$/i.test(text.trim());
+}
+
+// Formulário à mão: valida ao sair de cada campo e no envio (o foco vai para o primeiro erro),
+// sugere os gêneros já usados, mostra a prévia da capa e avisa antes de perder o que foi digitado.
+export default function AddManual({ onCreated, onCancel, initialTitle = "", books }) {
   const { t } = useI18n();
-  const [form, setForm] = useState({
-    title: initialTitle,
-    author: "",
-    gender: "",
-    synopsis: "",
-    cover_url: "",
-  });
-  const [errors, setErrors] = useState({});
+  const empty = { title: initialTitle, author: "", gender: "", cover_url: "", synopsis: "", reading_status: "toRead" };
+  const [form, setForm] = useState(empty);
+  const [touched, setTouched] = useState({});
+  const [busy, setBusy] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const keep = useRef(null);
+  const saved = useRef(false);
 
-  function inputStyleFor(field) {
-    return {
-      width: "100%",
-      maxWidth: "400px",
-      background: "var(--color-card)",
-      border: errors[field]
-        ? "1px solid var(--color-warning)"
-        : "1px solid var(--color-border-strong)",
-      borderRadius: "var(--radius-sm)",
-      padding: "10px 14px",
-      color: "var(--color-text-primary)",
-      fontFamily: "var(--font-ui)",
-      marginBottom: errors[field] ? "6px" : "14px",
-      display: "block",
-    };
-  }
-
-  const labelStyle = {
-    display: "block",
-    fontSize: "12px",
-    color: "var(--color-text-secondary)",
-    marginBottom: "6px",
+  const dirty = Object.keys(form).some((key) => form[key] !== empty[key]);
+  const errors = {
+    title: !form.title.trim(),
+    author: !form.author.trim(),
+    gender: !form.gender.trim(),
+    cover_url: form.cover_url.trim() !== "" && !isUrl(form.cover_url),
   };
+  const shown = (key) => touched[key] && errors[key];
 
-  const errorTextStyle = {
-    fontSize: "12px",
-    color: "var(--color-warning)",
-    margin: "0 0 14px",
-  };
+  const genres = [...new Set(books.map((b) => b.gender).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  const duplicate = books.find(
+    (b) => form.title.trim() && form.author.trim() && bookKey(b.title, b.author) === bookKey(form.title, form.author),
+  );
 
-  function updateField(field, value) {
-    setForm((prev) => ({ ...prev, [field]: value }));
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: false }));
+  // fechar a aba ou recarregar com dados preenchidos: o navegador pergunta antes
+  useEffect(() => {
+    if (!dirty) return;
+    function warn(event) {
+      if (saved.current) return;
+      event.preventDefault();
+      event.returnValue = "";
     }
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
+
+  function update(key, value) {
+    setForm((prev) => ({ ...prev, [key]: value }));
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
-    const newErrors = {
-      title: !form.title.trim(),
-      author: !form.author.trim(),
-      gender: !form.gender.trim(),
-    };
-    if (newErrors.title || newErrors.author || newErrors.gender) {
-      setErrors(newErrors);
+    setTouched({ title: true, author: true, gender: true, cover_url: true });
+    const firstError = [...REQUIRED, "cover_url"].find((key) => errors[key]);
+    if (firstError) {
+      document.getElementById(`manual-${firstError}`)?.focus();
       return;
     }
+    setBusy(true);
     try {
       const created = await createBook({
-        ...form,
-        cover_url: form.cover_url || null,
-        synopsis: form.synopsis || null,
+        title: form.title.trim(),
+        author: form.author.trim(),
+        gender: form.gender.trim(),
+        cover_url: form.cover_url.trim() || null,
+        synopsis: form.synopsis.trim() || null,
+        reading_status: form.reading_status,
+      });
+      saved.current = true;
+      notify(t("search.added", { title: created.title }), "success", {
+        label: t("toast.viewBook"),
+        to: `/livro/${created.id}`,
       });
       onCreated(created);
     } catch (err) {
       notify(err.message);
+      setBusy(false);
     }
   }
 
+  function field(key, label, { type = "text", hint, list } = {}) {
+    const describedBy = [hint && `manual-${key}-hint`, shown(key) && `manual-${key}-error`].filter(Boolean).join(" ");
+    return (
+      <div className="form-row">
+        <label htmlFor={`manual-${key}`} className="form-row__label">
+          {label}
+        </label>
+        <input
+          id={`manual-${key}`}
+          type={type}
+          className="field-input"
+          value={form[key]}
+          list={list}
+          required={REQUIRED.includes(key)}
+          aria-invalid={shown(key) || undefined}
+          aria-describedby={describedBy || undefined}
+          onChange={(e) => update(key, e.target.value)}
+          onBlur={() => setTouched((prev) => ({ ...prev, [key]: true }))}
+        />
+        {hint && (
+          <p id={`manual-${key}-hint`} className="form-row__hint">
+            {hint}
+          </p>
+        )}
+        {shown(key) && (
+          <p id={`manual-${key}-error`} className="form-row__error">
+            {t(`manual.${key}Error`)}
+          </p>
+        )}
+      </div>
+    );
+  }
+
   return (
-    <div
-      className="page-padding"
-      style={{
-        background: "var(--color-background)",
-        minHeight: "100vh",
-        fontFamily: "var(--font-ui)",
-      }}
-    >
-      <button
-        onClick={onCancel}
-        style={{
-          marginBottom: "20px",
-          background: "none",
-          border: "none",
-          color: "var(--color-text-secondary)",
-          cursor: "pointer",
-        }}
-      >
-        {t("common.back")}
-      </button>
-
-      <h1
-        style={{
-          fontFamily: "var(--font-display)",
-          color: "var(--color-text-primary)",
-          marginBottom: "24px",
-        }}
-      >
-        {t("manual.title")}
-      </h1>
-
-      <form onSubmit={handleSubmit} noValidate>
-        <label htmlFor="manual-title" style={labelStyle}>{t("manual.name")}</label>
-        <input
-          id="manual-title"
-          required
-          aria-invalid={Boolean(errors.title)}
-          aria-describedby={errors.title ? "manual-title-error" : undefined}
-          style={inputStyleFor("title")}
-          value={form.title}
-          onChange={(e) => updateField("title", e.target.value)}
-          placeholder={errors.title ? t("manual.required") : ""}
-        />
-        {errors.title && (
-          <p id="manual-title-error" style={errorTextStyle}>{t("manual.titleError")}</p>
+    <form className="manual-form" onSubmit={handleSubmit} noValidate>
+      <div className="manual-form__fields">
+        {field("title", t("manual.name"))}
+        {field("author", t("manual.author"))}
+        {duplicate && (
+          <p className="form-row__hint manual-form__duplicate" role="status">
+            {t("manual.duplicate")}{" "}
+            <Link to={`/livro/${duplicate.id}`}>{t("toast.viewBook")}</Link>
+          </p>
         )}
+        {field("gender", t("manual.gender"), {
+          list: "manual-genres",
+          hint: genres.length ? t("manual.genderHint") : undefined,
+        })}
+        <datalist id="manual-genres">
+          {genres.map((genre) => (
+            <option key={genre} value={genre} />
+          ))}
+        </datalist>
 
-        <label htmlFor="manual-author" style={labelStyle}>{t("manual.author")}</label>
-        <input
-          id="manual-author"
-          required
-          aria-invalid={Boolean(errors.author)}
-          aria-describedby={errors.author ? "manual-author-error" : undefined}
-          style={inputStyleFor("author")}
-          value={form.author}
-          onChange={(e) => updateField("author", e.target.value)}
-          placeholder={errors.author ? t("manual.required") : ""}
-        />
-        {errors.author && (
-          <p id="manual-author-error" style={errorTextStyle}>{t("manual.authorError")}</p>
-        )}
+        <div className="form-row">
+          <span className="form-row__label" id="manual-status-label">
+            {t("manual.status")}
+          </span>
+          <div className="seg book-status" role="group" aria-labelledby="manual-status-label">
+            {STATUSES.map((key) => (
+              <button
+                key={key}
+                type="button"
+                aria-pressed={form.reading_status === key}
+                onClick={() => update("reading_status", key)}
+              >
+                <StatusIcon status={key} />
+                {t(`statusShort.${key}`)}
+              </button>
+            ))}
+          </div>
+        </div>
 
-        <label htmlFor="manual-gender" style={labelStyle}>{t("manual.gender")}</label>
-        <input
-          id="manual-gender"
-          required
-          aria-invalid={Boolean(errors.gender)}
-          aria-describedby={errors.gender ? "manual-gender-error" : undefined}
-          style={inputStyleFor("gender")}
-          value={form.gender}
-          onChange={(e) => updateField("gender", e.target.value)}
-          placeholder={errors.gender ? t("manual.required") : ""}
-        />
-        {errors.gender && (
-          <p id="manual-gender-error" style={errorTextStyle}>{t("manual.genderError")}</p>
-        )}
+        <div className="manual-form__cover">
+          {field("cover_url", t("manual.cover"), { type: "url", hint: t("manual.coverHint") })}
+          <div className="manual-form__preview" aria-hidden="true">
+            <Cover
+              key={isUrl(form.cover_url) ? form.cover_url : "none"}
+              url={isUrl(form.cover_url) ? form.cover_url.trim() : null}
+              title={form.title || "?"}
+              size="large"
+            />
+          </div>
+        </div>
 
-        <label htmlFor="manual-cover" style={labelStyle}>{t("manual.cover")}</label>
-        <input
-          id="manual-cover"
-          type="url"
-          style={inputStyleFor()}
-          value={form.cover_url}
-          onChange={(e) => updateField("cover_url", e.target.value)}
-          placeholder="https://..."
-        />
+        <div className="form-row">
+          <label htmlFor="manual-synopsis" className="form-row__label">
+            {t("manual.synopsis")}
+          </label>
+          <textarea
+            id="manual-synopsis"
+            className="field-input book-note"
+            rows={5}
+            maxLength={2000}
+            value={form.synopsis}
+            onChange={(e) => update("synopsis", e.target.value)}
+          />
+        </div>
+      </div>
 
-        <label htmlFor="manual-synopsis" style={labelStyle}>{t("manual.synopsis")}</label>
-        <textarea
-          id="manual-synopsis"
-          style={{ ...inputStyleFor(), fontFamily: "var(--font-reading)" }}
-          rows={4}
-          value={form.synopsis}
-          onChange={(e) => updateField("synopsis", e.target.value)}
-        />
-
-        <button
-          type="submit"
-          style={{
-            marginTop: "10px",
-            background: "var(--color-primary)",
-            color: "var(--color-on-primary)",
-            border: "none",
-            borderRadius: "var(--radius-sm)",
-            padding: "10px 24px",
-            fontWeight: 600,
-            cursor: "pointer",
-          }}
-        >
+      <div className="manual-form__actions">
+        <Button variant="secondary" onClick={() => (dirty ? setConfirming(true) : onCancel())}>
+          {t("common.cancel")}
+        </Button>
+        <Button type="submit" busy={busy} busyText={t("details.saving")}>
           {t("manual.submit")}
-        </button>
-      </form>
-    </div>
+        </Button>
+      </div>
+
+      <Dialog
+        open={confirming}
+        title={t("manual.discardTitle")}
+        onClose={() => setConfirming(false)}
+        initialFocus={keep}
+        actions={
+          <>
+            <button ref={keep} type="button" className="btn btn--secondary" onClick={() => setConfirming(false)}>
+              {t("manual.keep")}
+            </button>
+            <Button
+              variant="danger-solid"
+              onClick={() => {
+                saved.current = true;
+                setConfirming(false);
+                onCancel();
+              }}
+            >
+              {t("manual.discard")}
+            </Button>
+          </>
+        }
+      >
+        <p>{t("manual.discardText")}</p>
+      </Dialog>
+    </form>
   );
 }

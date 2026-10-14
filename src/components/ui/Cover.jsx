@@ -24,12 +24,17 @@ export default function Cover({ url, title, size = "grid", className = "" }) {
           alt=""
           loading="lazy"
           decoding="async"
-          width={size === "thumb" ? 40 : 180}
-          height={size === "thumb" ? 60 : 270}
+          width={size === "grid" || size === "large" ? 180 : 64}
+          height={size === "grid" || size === "large" ? 270 : 96}
           onError={() => setBroken(true)}
         />
       ) : (
-        size !== "thumb" && <span className="cover__title" aria-hidden="true">{title}</span>
+        // nas miniaturas não cabe texto legível: fica só a cor
+        (size === "grid" || size === "large") && (
+          <span className="cover__title" aria-hidden="true">
+            {title}
+          </span>
+        )
       )}
     </span>
   );

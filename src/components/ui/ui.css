@@ -319,3 +319,8 @@
 .menu__item--danger {
   color: var(--color-error);
 }
+.cover--result {
+  width: 64px;
+  border-radius: var(--radius-xs);
+  flex-shrink: 0;
+}

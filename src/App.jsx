@@ -1,11 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import Login from "./pages/Login";
 import Library from "./pages/Library";
-import SearchBooks from "./pages/SearchBooks";
+import AddBook from "./pages/AddBook";
 import BookDetails from "./pages/BookDetails";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
-import AddManual from "./pages/AddManual";
 import Toast from "./components/Toast";
 import AccountMenu from "./components/AccountMenu";
 import {
@@ -63,7 +62,7 @@ const NAV_ITEMS = [
 
 const PAGE_TITLES = {
   add: "nav.add",
-  addManual: "manual.title",
+  addManual: "nav.add",
   profile: "nav.profile",
   settings: "nav.settings",
 };
@@ -275,26 +274,13 @@ function App() {
         </Link>
       </div>
     );
-  } else if (route.name === "add") {
-    const q = route.query.get("q") || "";
+  } else if (route.name === "add" || route.name === "addManual") {
     page = (
-      <SearchBooks
-        key={q}
-        initialQuery={q}
-        onQueryChange={(next) =>
-          navigate(`/adicionar?q=${encodeURIComponent(next)}`, { replace: true })
-        }
-        onGoManual={(title) =>
-          navigate(`/adicionar/manual${title ? `?titulo=${encodeURIComponent(title)}` : ""}`)
-        }
+      <AddBook
+        mode={route.name === "add" ? "search" : "manual"}
+        query={route.query}
+        books={books}
         onAdded={handleAdded}
-      />
-    );
-  } else if (route.name === "addManual") {
-    page = (
-      <AddManual
-        key={route.href}
-        initialTitle={route.query.get("titulo") || ""}
         onCreated={handleCreated}
         onCancel={() => goBack("/adicionar")}
       />
