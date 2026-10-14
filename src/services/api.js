@@ -53,6 +53,7 @@ const ERROR_KEYS = {
   wrong_password: "err.wrongPassword",
   book_limit: "err.bookLimit",
   photo_type: "err.photoType",
+  photo_upload_failed: "err.photoUploadFailed",
   photo_size: "err.photoSize",
   photo_unavailable: "err.photoUnavailable",
   demo_not_ready: "err.demoNotReady",
@@ -146,6 +147,10 @@ export function uploadProfilePhoto(file) {
   const formData = new FormData();
   formData.append("file", file);
   return request("/me/photo", { method: "POST", body: formData }, "err.uploadPhoto");
+}
+
+export function deleteProfilePhoto() {
+  return request("/me/photo", { method: "DELETE" }, "err.save");
 }
 
 // ---------- livros ----------

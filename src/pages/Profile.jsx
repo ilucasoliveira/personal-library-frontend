@@ -1,10 +1,11 @@
 import { useRef, useState } from "react";
-import { uploadProfilePhoto } from "../services/api";
+import { deleteProfilePhoto, uploadProfilePhoto } from "../services/api";
 import { notify } from "../utils/notify";
 import { useI18n } from "../i18n";
 import Button from "../components/ui/Button";
 import Dialog from "../components/ui/Dialog";
 import { Link } from "../components/Link";
+import PhotoCropper from "../components/PhotoCropper";
 
 function mostCommon(values) {
   const counts = values.reduce((acc, value) => acc.set(value, (acc.get(value) || 0) + 1), new Map());
@@ -23,18 +24,43 @@ export default function Profile({ books, user, onUserUpdated, onLogout }) {
   const stay = useRef(null);
   const fileInput = useRef(null);
 
-  async function handleFileChange(e) {
+  // escolher a foto abre a tela de ajuste; só o recorte (JPEG 512x512) vai para a API
+  const [picked, setPicked] = useState(null);
+  const [removing, setRemoving] = useState(false);
+
+  function handleFileChange(e) {
     const file = e.target.files[0];
     e.target.value = "";
     if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      notify(t("err.photoType"));
+      return;
+    }
+    setPicked(file);
+  }
+
+  async function handleCropped(blob) {
     setUploading(true);
     try {
-      onUserUpdated(await uploadProfilePhoto(file));
+      onUserUpdated(await uploadProfilePhoto(new File([blob], "foto.jpg", { type: "image/jpeg" })));
+      setPicked(null);
       notify(t("profile.photoUpdated"), "success");
     } catch (err) {
       notify(err.message);
     } finally {
       setUploading(false);
+    }
+  }
+
+  async function handleRemovePhoto() {
+    setRemoving(true);
+    try {
+      onUserUpdated(await deleteProfilePhoto());
+      notify(t("profile.photoRemoved"), "success");
+    } catch (err) {
+      notify(err.message);
+    } finally {
+      setRemoving(false);
     }
   }
 
@@ -103,18 +129,27 @@ export default function Profile({ books, user, onUserUpdated, onLogout }) {
             <p className="profile-head__note">{t("profile.visitorPhoto")}</p>
           ) : (
             <>
-              <Button
-                variant="text"
-                busy={uploading}
-                busyText={t("profile.uploading")}
-                onClick={() => fileInput.current?.click()}
-              >
-                {user.photo_url ? t("profile.changePhoto") : t("profile.choosePhoto")}
-              </Button>
+              <span className="profile-head__photo-actions">
+                <Button variant="text" disabled={uploading || removing} onClick={() => fileInput.current?.click()}>
+                  {user.photo_url ? t("profile.changePhoto") : t("profile.choosePhoto")}
+                </Button>
+                {user.photo_url && (
+                  <Button
+                    variant="text"
+                    className="profile-head__remove"
+                    busy={removing}
+                    busyText={t("profile.removing")}
+                    disabled={uploading}
+                    onClick={handleRemovePhoto}
+                  >
+                    {t("profile.removePhoto")}
+                  </Button>
+                )}
+              </span>
               <input
                 ref={fileInput}
                 type="file"
-                accept="image/jpeg,image/png,image/webp,image/gif"
+                accept="image/*"
                 className="sr-only"
                 tabIndex={-1}
                 aria-hidden="true"
@@ -209,6 +244,10 @@ export default function Profile({ books, user, onUserUpdated, onLogout }) {
       >
         <p>{t("profile.confirmLogout")}</p>
       </Dialog>
+
+      {picked && (
+        <PhotoCropper file={picked} busy={uploading} onCancel={() => setPicked(null)} onConfirm={handleCropped} />
+      )}
     </div>
   );
 }

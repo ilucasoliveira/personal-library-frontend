@@ -2064,6 +2064,143 @@ textarea.field-input {
 .profile-head__text .btn--text {
   margin-left: calc(-1 * var(--space-1));
 }
+.profile-head__photo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+.profile-head__photo-actions .profile-head__remove {
+  margin-left: 0;
+  color: var(--color-text-secondary);
+}
+
+/* ----- Ajustar a foto do perfil ----- */
+/* .dialog.dialog--crop: o ui.css (com o .dialog base) carrega depois deste arquivo */
+.dialog.dialog--crop {
+  width: min(92vw, 440px);
+}
+.cropper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding-top: var(--space-3);
+}
+.cropper__frame {
+  position: relative;
+  width: min(72vw, 300px);
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--color-background);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.cropper__frame:active {
+  cursor: grabbing;
+}
+.cropper__frame:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+.cropper__image {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  max-width: none;
+  pointer-events: none;
+}
+/* círculo do avatar: escurece os cantos e marca a borda */
+.cropper__mask {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 0 999px rgb(0 0 0 / 0.55);
+  outline: 2px solid rgb(255 255 255 / 0.85);
+  outline-offset: -2px;
+  pointer-events: none;
+}
+.cropper__zoom {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: min(72vw, 300px);
+}
+.cropper__zoom input {
+  flex: 1;
+  accent-color: var(--color-primary);
+}
+.cropper__zoom-btn {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.cropper__zoom-btn:hover {
+  background: var(--color-card-hover);
+  color: var(--color-text-primary);
+}
+.cropper__zoom-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.cropper__hint {
+  max-width: 300px;
+  font-size: var(--text-small);
+  line-height: 20px;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+@media (max-width: 640px) {
+  .dialog.dialog--crop {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+  }
+  .dialog--crop .dialog__box {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+    padding: calc(var(--space-6) + env(safe-area-inset-top)) var(--space-5)
+      calc(var(--space-5) + env(safe-area-inset-bottom));
+  }
+  .dialog--crop .dialog__title {
+    text-align: center;
+  }
+  .dialog--crop .dialog__body {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .cropper__frame,
+  .cropper__zoom {
+    width: min(86vw, 360px);
+  }
+  .dialog--crop .dialog__actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+  .dialog--crop .dialog__actions .btn {
+    min-height: 48px;
+  }
+}
 
 .profile-numbers {
   display: grid;
