@@ -1981,3 +1981,266 @@ textarea.field-input {
     flex: 1;
   }
 }
+
+/* =====================================================================
+   Perfil
+   ===================================================================== */
+.profile-page {
+  max-width: calc(880px + 80px);
+}
+.profile-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  margin-bottom: var(--space-6);
+}
+.profile-head__avatar {
+  width: 88px;
+  height: 88px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  color: var(--color-on-primary);
+  font-family: var(--font-display);
+  font-size: 36px;
+  font-weight: 600;
+}
+.profile-head__text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+.profile-head__text .page-title {
+  overflow-wrap: anywhere;
+}
+.profile-head__since,
+.profile-head__note {
+  margin: 0;
+  font-size: var(--text-small);
+  line-height: 20px;
+  color: var(--color-text-secondary);
+}
+.profile-head__note {
+  color: var(--color-text-muted);
+}
+.profile-head__text .btn--text {
+  margin-left: calc(-1 * var(--space-1));
+}
+
+.profile-numbers {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0 0 var(--space-7);
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
+.profile-numbers__item {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+  gap: var(--space-1);
+  padding: var(--space-5) var(--space-4);
+}
+.profile-numbers__item + .profile-numbers__item {
+  border-left: 1px solid var(--color-border);
+}
+.profile-numbers dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 48px;
+  font-weight: 600;
+  line-height: 52px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+}
+
+/* ----- gráfico de colunas por mês ----- */
+.month-chart .label {
+  margin-bottom: var(--space-4);
+}
+.month-chart__plot {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  height: 200px;
+  border-bottom: 1px solid var(--color-border-strong);
+}
+.month-chart__col {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  outline-offset: -2px;
+  border-radius: var(--radius-sm);
+  cursor: default;
+}
+.month-chart__col:hover,
+.month-chart__col:focus {
+  background: color-mix(in srgb, var(--color-text-primary) 5%, transparent);
+}
+.month-chart__bar-area {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding-top: 20px;
+}
+.month-chart__value {
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.month-chart__bar {
+  width: min(24px, 60%);
+  min-height: 0;
+  border-radius: 4px 4px 0 0;
+  background: var(--color-primary);
+}
+.month-chart__month {
+  position: absolute;
+  top: calc(100% + 8px);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 16px;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+.month-chart__col.is-current .month-chart__month {
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+.month-chart__tip {
+  position: absolute;
+  bottom: calc(100% - 12px);
+  left: 50%;
+  translate: -50% 0;
+  z-index: 5;
+  display: none;
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  box-shadow: var(--shadow-modal);
+  font-size: 12px;
+  line-height: 16px;
+  white-space: nowrap;
+  color: var(--color-text-secondary);
+  pointer-events: none;
+}
+.month-chart__tip strong {
+  display: block;
+  font-size: var(--text-small);
+  color: var(--color-text-primary);
+}
+.month-chart__col:hover .month-chart__tip,
+.month-chart__col:focus .month-chart__tip {
+  display: block;
+}
+.month-chart__table {
+  margin-top: 40px;
+  font-size: var(--text-small);
+  color: var(--color-text-secondary);
+}
+.month-chart__table summary {
+  cursor: pointer;
+  color: var(--color-primary);
+  width: fit-content;
+}
+.month-chart__table table {
+  margin-top: var(--space-3);
+  border-collapse: collapse;
+  min-width: 260px;
+}
+.month-chart__table th,
+.month-chart__table td {
+  padding: 6px 12px 6px 0;
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+  font-weight: 400;
+}
+.month-chart__table thead th {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+}
+.month-chart__table td {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+}
+
+/* ----- ficha do leitor: cartão de biblioteca com o furo da ficha ----- */
+.reader-card {
+  position: relative;
+  max-width: 560px;
+  padding: var(--space-5) var(--space-5) var(--space-4);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-sunken);
+}
+.reader-card::before {
+  content: "";
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  translate: -50% 0;
+  border-radius: 50%;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-background);
+}
+.reader-card .label {
+  margin-bottom: var(--space-3);
+}
+.record__link {
+  color: var(--color-text-primary);
+  text-decoration-color: var(--color-primary);
+  text-underline-offset: 3px;
+}
+
+.profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+}
+
+@media (max-width: 640px) {
+  .profile-head {
+    gap: var(--space-4);
+  }
+  .profile-head__avatar {
+    width: 72px;
+    height: 72px;
+    font-size: 30px;
+  }
+  .profile-numbers__item {
+    padding: var(--space-4) var(--space-2);
+  }
+  .profile-numbers__item + .profile-numbers__item {
+    padding-left: var(--space-3);
+  }
+  .profile-numbers dd {
+    font-size: 36px;
+    line-height: 40px;
+  }
+  .month-chart__month {
+    font-size: 12px;
+    writing-mode: vertical-rl;
+    rotate: 180deg;
+  }
+  .month-chart__table {
+    margin-top: 64px;
+  }
+}

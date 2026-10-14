@@ -1,12 +1,27 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { uploadProfilePhoto } from "../services/api";
 import { notify } from "../utils/notify";
 import { useI18n } from "../i18n";
+import Button from "../components/ui/Button";
+import Dialog from "../components/ui/Dialog";
+import { Link } from "../components/Link";
 
-export default function Profile({ books, user, onUserUpdated, onOpenSettings, onLogout }) {
+function mostCommon(values) {
+  const counts = values.reduce((acc, value) => acc.set(value, (acc.get(value) || 0) + 1), new Map());
+  let best = null;
+  for (const [value, count] of counts) if (!best || count > best[1]) best = [value, count];
+  return best ? best[0] : null;
+}
+
+// Perfil: quem é o leitor, 3 números do ano, os livros lidos por mês e a ficha do leitor.
+// Tudo sai da estante já carregada e de /me; nada novo é pedido à API.
+export default function Profile({ books, user, onUserUpdated, onLogout }) {
   const { lang, t } = useI18n();
+  const locale = lang === "pt" ? "pt-BR" : "en";
   const [uploading, setUploading] = useState(false);
-  const photoUrl = user.photo_url;
+  const [confirming, setConfirming] = useState(false);
+  const stay = useRef(null);
+  const fileInput = useRef(null);
 
   async function handleFileChange(e) {
     const file = e.target.files[0];
@@ -23,275 +38,209 @@ export default function Profile({ books, user, onUserUpdated, onOpenSettings, on
     }
   }
 
-  function handleLogoutClick() {
-    if (!window.confirm(t("profile.confirmLogout"))) return;
-    onLogout();
-  }
+  const year = new Date().getFullYear();
+  const currentMonth = new Date().getMonth();
+  const read = books.filter((b) => b.reading_status === "read");
+  const finishedThisYear = read.filter((b) => b.finished_date?.startsWith(String(year)));
+  const perMonth = Array.from({ length: 12 }, (_, month) =>
+    finishedThisYear.filter((b) => Number(b.finished_date.slice(5, 7)) === month + 1).length,
+  );
+  const monthName = (month, style) => new Intl.DateTimeFormat(locale, { month: style }).format(new Date(year, month, 1));
 
-  const totalRead = books.filter((b) => b.reading_status === "read").length;
-  const totalBooks = books.length;
+  const rated = books.filter((b) => b.grade);
+  const average = rated.length
+    ? (rated.reduce((sum, b) => sum + b.grade, 0) / rated.length).toLocaleString(locale, {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+      })
+    : null;
+  const lastRead = read
+    .filter((b) => b.finished_date)
+    .sort((a, b) => b.finished_date.localeCompare(a.finished_date))[0];
 
-  const ratedBooks = books.filter((b) => b.grade);
-  const avgRating = ratedBooks.length
-    ? (ratedBooks.reduce((sum, b) => sum + b.grade, 0) / ratedBooks.length).toLocaleString(
-        lang === "pt" ? "pt-BR" : "en",
-        { minimumFractionDigits: 1, maximumFractionDigits: 1 },
-      )
-    : "-";
+  const since = user.created_at
+    ? new Intl.DateTimeFormat(locale, { month: "long", year: "numeric" }).format(new Date(user.created_at))
+    : null;
 
-  const genderCounts = books.reduce((acc, b) => {
-    acc[b.gender] = (acc[b.gender] || 0) + 1;
-    return acc;
-  }, {});
-  const favoriteGender = Object.keys(genderCounts).length
-    ? Object.entries(genderCounts).sort((a, b) => b[1] - a[1])[0][0]
-    : "-";
+  const numbers = [
+    { value: finishedThisYear.length, label: t("profile.readYear", { year }) },
+    { value: books.filter((b) => b.reading_status === "reading").length, label: t("stats.reading") },
+    { value: books.length, label: t("stats.total") },
+  ];
 
-  const readBooks = books.filter((b) => b.reading_status === "read");
-  const authorCounts = readBooks.reduce((acc, b) => {
-    acc[b.author] = (acc[b.author] || 0) + 1;
-    return acc;
-  }, {});
-  const topAuthor = Object.keys(authorCounts).length
-    ? Object.entries(authorCounts).sort((a, b) => b[1] - a[1])[0][0]
-    : "-";
-
-  const now = new Date();
-  const currentMonth = now.getMonth();
-  const currentYear = now.getFullYear();
-  const currentlyReadingCount = books.filter(
-    (b) => b.reading_status === "reading",
-  ).length;
-
-  const readThisMonth = books.filter((b) => {
-    if (!b.finished_date) return false;
-    const finished = new Date(b.finished_date + "T00:00:00");
-    return (
-      finished.getFullYear() === currentYear &&
-      finished.getMonth() === currentMonth
-    );
-  }).length;
-
-  const readThisYear = books.filter((b) => {
-    if (!b.finished_date) return false;
-    const finished = new Date(b.finished_date + "T00:00:00");
-    return finished.getFullYear() === currentYear;
-  }).length;
-
-  // ficha do leitor, calculada a partir da própria estante
-  const favoriteBook =
-    books
-      .filter((b) => b.favorite)
-      .sort((a, b) => (b.grade || 0) - (a.grade || 0))[0]?.title || "-";
-  const lastRead =
-    readBooks
-      .filter((b) => b.finished_date)
-      .sort((a, b) => b.finished_date.localeCompare(a.finished_date))[0]
-      ?.title || "-";
-  const toReadCount = books.filter((b) => b.reading_status === "toRead").length;
-  const favoritesCount = books.filter((b) => b.favorite).length;
-
-  const stats = [
-    { label: t("stats.read"), value: totalRead },
-    { label: t("stats.reading"), value: currentlyReadingCount },
-    { label: t("stats.topAuthor"), value: topAuthor },
-    { label: t("stats.topGenre"), value: favoriteGender },
-    { label: t("stats.total"), value: totalBooks },
-    { label: t("stats.avg"), value: avgRating },
-    { label: t("stats.month"), value: readThisMonth },
-    { label: t("stats.year"), value: readThisYear },
+  const record = [
+    { label: t("stats.topAuthor"), value: mostCommon(read.map((b) => b.author)) },
+    { label: t("stats.topGenre"), value: mostCommon(books.map((b) => b.gender)) },
+    { label: t("stats.avg"), value: average && t("profile.average", { value: average }) },
+    {
+      label: t("profile.lastRead"),
+      value: lastRead && (
+        <Link to={`/livro/${lastRead.id}`} className="record__link">
+          {lastRead.title}
+        </Link>
+      ),
+    },
   ];
 
   return (
-    <div
-      className="page-padding"
-      style={{
-        background: "var(--color-background)",
-        minHeight: "100vh",
-        fontFamily: "var(--font-ui)",
-      }}
-    >
-      <div style={{ textAlign: "center", marginBottom: "32px" }}>
+    <div className="page profile-page">
+      <header className="profile-head">
         <div
+          className="profile-head__avatar"
           style={{
-            width: "72px",
-            height: "72px",
-            borderRadius: "50%",
-            backgroundImage: photoUrl
-              ? `url(${photoUrl})`
+            backgroundImage: user.photo_url
+              ? `url(${user.photo_url})`
               : "linear-gradient(155deg, var(--color-primary), var(--color-secondary))",
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            margin: "0 auto 16px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "var(--color-on-primary)",
-            fontSize: "28px",
-            fontWeight: 700,
           }}
+          aria-hidden="true"
         >
-          {!photoUrl && user.name.charAt(0).toUpperCase()}
+          {!user.photo_url && user.name.charAt(0).toUpperCase()}
         </div>
-        <h1
-          style={{
-            fontFamily: "var(--font-display)",
-            color: "var(--color-text-primary)",
-            margin: 0,
-            fontSize: "26px",
-          }}
-        >
-          {user.name}
-        </h1>
-        {favoriteBook !== "-" && (
-          <p
-            style={{
-              fontFamily: "var(--font-display)",
-              fontStyle: "italic",
-              color: "var(--color-text-secondary)",
-              marginTop: "8px",
-            }}
-          >
-            "{t("profile.favoriteBook", { title: favoriteBook })}"
-          </p>
-        )}
-
-        <div
-          style={{
-            maxWidth: "300px",
-            margin: "16px auto 0",
-            textAlign: "center",
-          }}
-        >
+        <div className="profile-head__text">
+          <h1 className="page-title">{user.name}</h1>
+          {since && <p className="profile-head__since">{t("profile.since", { date: since })}</p>}
           {user.is_visitor ? (
-            <p
-              style={{
-                fontSize: "12px",
-                color: "var(--color-text-muted)",
-                margin: 0,
-              }}
-            >
-              {t("profile.visitorPhoto")}
-            </p>
+            <p className="profile-head__note">{t("profile.visitorPhoto")}</p>
           ) : (
-          <label
-            style={{
-              opacity: uploading ? 0.6 : 1,
-              background: "var(--color-primary)",
-              color: "var(--color-on-primary)",
-              border: "none",
-              borderRadius: "var(--radius-sm)",
-              padding: "8px 16px",
-              fontSize: "12px",
-              fontWeight: 600,
-              cursor: "pointer",
-              display: "inline-block",
-            }}
-          >
-            {uploading ? t("common.loading") : t("profile.choosePhoto")}
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp,image/gif"
-              disabled={uploading}
-              onChange={handleFileChange}
-              style={{ display: "none" }}
-            />
-          </label>
+            <>
+              <Button
+                variant="text"
+                busy={uploading}
+                busyText={t("profile.uploading")}
+                onClick={() => fileInput.current?.click()}
+              >
+                {user.photo_url ? t("profile.changePhoto") : t("profile.choosePhoto")}
+              </Button>
+              <input
+                ref={fileInput}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                className="sr-only"
+                tabIndex={-1}
+                aria-hidden="true"
+                onChange={handleFileChange}
+              />
+            </>
           )}
         </div>
-      </div>
+      </header>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(2, 1fr)",
-          gap: "12px",
-          maxWidth: "400px",
-          margin: "0 auto 32px",
-        }}
-      >
-        {stats.map((stat) => (
-          <div
-            key={stat.label}
-            style={{
-              background: "var(--color-card)",
-              borderRadius: "var(--radius-sm)",
-              padding: "16px",
-              textAlign: "center",
-            }}
-          >
-            <div
-              style={{
-                fontFamily: "var(--font-display)",
-                fontSize: "22px",
-                color: "var(--color-accent)",
-              }}
-            >
-              {stat.value}
-            </div>
-            <div
-              style={{
-                fontSize: "12px",
-                color: "var(--color-text-muted)",
-                textTransform: "uppercase",
-                marginTop: "4px",
-              }}
-            >
-              {stat.label}
-            </div>
+      <dl className="profile-numbers">
+        {numbers.map((item) => (
+          <div key={item.label} className="profile-numbers__item">
+            <dt className="label">{item.label}</dt>
+            <dd>{item.value}</dd>
           </div>
         ))}
-      </div>
+      </dl>
 
-      <div
-        style={{
-          maxWidth: "400px",
-          margin: "0 auto",
-          border: "1px dashed var(--color-border)",
-          borderRadius: "var(--radius-sm)",
-          padding: "16px 20px",
-          fontFamily: "var(--font-mono)",
-          fontSize: "12px",
-          color: "var(--color-text-muted)",
-          lineHeight: 1.8,
-        }}
-      >
-        <b
-          style={{
-            display: "block",
-            color: "var(--color-text-secondary)",
-            fontSize: "12px",
-            textTransform: "uppercase",
-            marginBottom: "6px",
-          }}
-        >
-          {t("reader.title")}
-        </b>
-        {t("reader.lastRead", { value: lastRead })}
-        <br />
-        {t("reader.favorites", { value: favoritesCount })}
-        <br />
-        {t("reader.queue", { value: toReadCount })}
-      </div>
+      <section className="book-section month-chart" aria-labelledby="chart-title">
+        <h2 id="chart-title" className="label">
+          {t("profile.chartTitle", { year })}
+        </h2>
+        <MonthChart
+          values={perMonth}
+          currentMonth={currentMonth}
+          shortName={(m) => monthName(m, "short").replace(".", "")}
+          longName={(m) => monthName(m, "long")}
+          countLabel={(n) => (n === 1 ? t("profile.oneBook") : t("profile.nBooks", { n }))}
+        />
+        <details className="month-chart__table">
+          <summary>{t("profile.asTable")}</summary>
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">{t("profile.month")}</th>
+                <th scope="col">{t("profile.booksRead")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {perMonth.map((count, month) => (
+                <tr key={month}>
+                  <th scope="row">{monthName(month, "long")}</th>
+                  <td>{count}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </details>
+      </section>
 
-      <div
-        style={{
-          maxWidth: "400px",
-          margin: "24px auto 0",
-          textAlign: "center",
-          display: "flex",
-          gap: "10px",
-          justifyContent: "center",
-          flexWrap: "wrap",
-        }}
-      >
-        <button className="btn-ghost" onClick={onOpenSettings}>
+      <section className="book-section" aria-labelledby="reader-title">
+        <div className="reader-card">
+          <h2 id="reader-title" className="label">
+            {t("reader.title")}
+          </h2>
+          <dl className="record">
+            {record.map((row) => (
+              <div key={row.label}>
+                <dt>{row.label}</dt>
+                <dd>{row.value || t("profile.none")}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
+
+      <div className="profile-actions">
+        <Link to="/configuracoes" className="btn btn--secondary">
           {t("profile.settings")}
-        </button>
-        <button className="btn-danger" onClick={handleLogoutClick}>
+        </Link>
+        <Button variant="danger" onClick={() => setConfirming(true)}>
           {t("profile.logout")}
-        </button>
+        </Button>
       </div>
+
+      <Dialog
+        open={confirming}
+        title={t("profile.logoutTitle")}
+        onClose={() => setConfirming(false)}
+        initialFocus={stay}
+        actions={
+          <>
+            <button ref={stay} type="button" className="btn btn--secondary" onClick={() => setConfirming(false)}>
+              {t("common.cancel")}
+            </button>
+            <Button variant="danger-solid" onClick={onLogout}>
+              {t("profile.logout")}
+            </Button>
+          </>
+        }
+      >
+        <p>{t("profile.confirmLogout")}</p>
+      </Dialog>
+    </div>
+  );
+}
+
+// Colunas por mês, uma cor só. O valor fica no topo das colunas com livros; passar o mouse
+// ou focar uma coluna mostra mês e quantidade.
+function MonthChart({ values, currentMonth, shortName, longName, countLabel }) {
+  const max = Math.max(1, ...values);
+  return (
+    <div className="month-chart__plot" role="list">
+      {values.map((count, month) => {
+        return (
+          <div
+            key={month}
+            role="listitem"
+            tabIndex={0}
+            className={`month-chart__col${month === currentMonth ? " is-current" : ""}`}
+            aria-label={`${longName(month)}: ${countLabel(count)}`}
+          >
+            <span className="month-chart__bar-area" aria-hidden="true">
+              {count > 0 && <span className="month-chart__value">{count}</span>}
+              <span className="month-chart__bar" style={{ height: `${(count / max) * 100}%` }} />
+            </span>
+            <span className="month-chart__month" aria-hidden="true">
+              {shortName(month)}
+            </span>
+            <span className="month-chart__tip" aria-hidden="true">
+              <strong>{countLabel(count)}</strong> {longName(month)}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }

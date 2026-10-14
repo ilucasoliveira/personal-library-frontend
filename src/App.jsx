@@ -291,7 +291,6 @@ function App() {
         books={books}
         user={user}
         onUserUpdated={setUser}
-        onOpenSettings={() => navigate("/configuracoes")}
         onLogout={handleLogout}
       />
     );
