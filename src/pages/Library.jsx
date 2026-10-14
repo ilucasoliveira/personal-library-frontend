@@ -166,9 +166,10 @@ export default function Library({ books, loading, error, query, onRetry, onOpenB
       {!loading && !error && books.length === 0 && (
         <div className="empty-state">
           <svg className="empty-state__art" viewBox="0 0 160 96" aria-hidden="true" focusable="false">
-            <path d="M58 20a18 18 0 1 0 22 22 14 14 0 0 1-22-22Z" fill="none" stroke="currentColor" strokeWidth="1.5" />
+            {/* prateleira quase vazia: só a marca do app num canto, esperando os primeiros livros */}
             <path d="M16 80h128M28 80v8M132 80v8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            <path d="M104 80V54h8v26M114 80V60h7v20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+            <path d="M100 80V56h8v24M110 80V62h7v18M119 80V58h7v22" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+            <path d="M132 80l-4.5-21.2 6.8-1.4L139 80" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
           </svg>
           <h2 className="empty-state__title">{t("empty.firstTitle")}</h2>
           <p className="empty-state__text">{t("empty.firstText")}</p>

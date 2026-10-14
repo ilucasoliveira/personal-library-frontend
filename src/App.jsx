@@ -8,6 +8,7 @@ import Settings from "./pages/Settings";
 import Toast from "./components/Toast";
 import AccountMenu from "./components/AccountMenu";
 import ErrorBoundary from "./components/ErrorBoundary";
+import Logo from "./components/Logo";
 import {
   clearToken,
   deleteBook,
@@ -467,9 +468,7 @@ function App() {
       </a>
       <header className="app-nav">
         <Link to="/" className="nav-brand">
-          <svg className="moon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M12 2a10 10 0 1 0 9.8 12.1A8 8 0 0 1 12 2Z" />
-          </svg>
+          <Logo />
           {APP_NAME}
         </Link>
         <nav aria-label={t("nav.main")} className="nav-links-wrap">

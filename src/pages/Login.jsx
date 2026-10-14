@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { APP_NAME, DEMO_MODE } from "../config";
 import { useI18n } from "../i18n";
 import { login, loginAsVisitor, ping, register } from "../services/api";
+import Logo from "../components/Logo";
 
 function EyeIcon({ open }) {
   return open ? (
@@ -99,9 +100,7 @@ export default function Login({ onLogin, notice }) {
         </div>
 
         <h1 className="nav-brand auth-card__brand">
-          <svg className="moon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M12 2a10 10 0 1 0 9.8 12.1A8 8 0 0 1 12 2Z" />
-          </svg>
+          <Logo />
           {APP_NAME}
         </h1>
         <p className="auth-card__tagline">{t("auth.tagline")}</p>
