@@ -187,14 +187,6 @@ body {
   top: 12px;
 }
 
-.star-item {
-  transition: transform 0.15s ease;
-  display: inline-block;
-}
-.star-item:hover {
-  transform: scale(1.15);
-}
-
 @keyframes heartPulse {
   0% {
     transform: scale(1);
@@ -1621,37 +1613,43 @@ a.btn-ghost {
   color: currentColor;
 }
 .seg button:disabled,
-.rating__star:disabled,
+.rating-open:disabled,
 .book-favorite:disabled {
   cursor: not-allowed;
   opacity: 0.5;
 }
-.rating {
-  display: flex;
-  gap: 2px;
-}
-.rating__star {
-  width: 36px;
-  height: 36px;
-  display: grid;
-  place-items: center;
-  padding: 0;
-  border: none;
+.rating-open {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 40px;
+  padding: var(--space-1) var(--space-3) var(--space-1) var(--space-2);
+  border: 1px solid transparent;
   border-radius: var(--radius-md);
   background: none;
-  font-size: 24px;
-  line-height: 1;
-  color: var(--color-star-empty);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: var(--text-small);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
   cursor: pointer;
   transition:
-    color 150ms var(--ease),
-    transform 150ms var(--ease);
+    background 150ms var(--ease),
+    border-color 150ms var(--ease);
 }
-.rating__star.is-on {
-  color: var(--color-star-filled);
+.rating-open .star {
+  --star: 22px;
 }
-.rating__star:hover:not(:disabled) {
-  transform: scale(1.12);
+.rating-open .stars__row {
+  gap: 3px;
+}
+.rating-open:hover:not(:disabled) {
+  border-color: var(--color-border);
+  background: var(--color-card-hover);
+}
+.rating-open:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
 }
 .book-favorite svg {
   width: 18px;
@@ -2412,8 +2410,4 @@ textarea.field-input {
 .skeleton--block {
   height: 160px;
   margin-top: 32px;
-}
-.rating__clear {
-  margin-left: var(--space-2);
-  font-size: var(--text-small);
 }

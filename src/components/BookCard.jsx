@@ -2,6 +2,7 @@ import { Link } from "./Link";
 import Cover from "./ui/Cover";
 import StatusIcon from "./ui/StatusIcon";
 import Stars from "./ui/Stars";
+import { formatRating } from "../utils/rating";
 import { useI18n } from "../i18n";
 
 // Coração dos cards: botão próprio, fora do link do livro
@@ -25,7 +26,7 @@ export function FavoriteButton({ book, onToggle }) {
 // Card da grade: o link leva capa, título, autor e o selo de exemplo; status, nota e
 // coração ficam na linha de baixo. O gênero aparece só na lista e na página do livro.
 export default function BookCard({ book, onOpen, onToggleFavorite }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   return (
     <article className="book-card">
       <Link to={`/livro/${book.id}`} onClick={onOpen} className="book-card__link">
@@ -39,7 +40,7 @@ export default function BookCard({ book, onOpen, onToggleFavorite }) {
           <StatusIcon status={book.reading_status} />
           {t(`statusShort.${book.reading_status}`)}
         </span>
-        <Stars rating={book.grade} label={t("card.rating", { rating: book.grade })} />
+        <Stars rating={book.grade} label={t("card.rating", { rating: formatRating(book.grade, lang) })} />
         <FavoriteButton book={book} onToggle={onToggleFavorite} />
       </div>
     </article>

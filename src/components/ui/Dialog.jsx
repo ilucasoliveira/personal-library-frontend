@@ -2,7 +2,7 @@ import { useEffect, useId, useRef } from "react";
 
 // Diálogo modal com o <dialog> do navegador: ele já prende o foco dentro, fecha com Esc
 // e devolve o foco a quem abriu. initialFocus: ref do elemento que recebe o foco ao abrir.
-export default function Dialog({ open, title, children, actions, onClose, initialFocus }) {
+export default function Dialog({ open, title, children, actions, onClose, initialFocus, className = "" }) {
   const ref = useRef(null);
   const titleId = useId();
 
@@ -19,7 +19,7 @@ export default function Dialog({ open, title, children, actions, onClose, initia
   return (
     <dialog
       ref={ref}
-      className="dialog"
+      className={`dialog ${className}`}
       aria-labelledby={titleId}
       onClose={onClose}
       // clique no fundo escuro (fora da caixa) fecha

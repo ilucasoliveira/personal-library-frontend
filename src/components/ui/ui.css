@@ -199,16 +199,67 @@
 .status-icon--read {
   color: var(--color-star-filled);
 }
+/* estrela em duas camadas: a vazia embaixo e a cheia por cima, cortada na largura da nota */
 .stars {
-  font-size: 12px;
-  letter-spacing: 1px;
+  display: inline-flex;
+  align-items: center;
   white-space: nowrap;
 }
-.stars__on {
+.stars__row {
+  display: inline-flex;
+  gap: 1px;
+}
+.star {
+  --star: 13px;
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+  width: var(--star);
+  height: var(--star);
+}
+.star svg {
+  display: block;
+  width: var(--star);
+  height: var(--star);
+  max-width: none;
+}
+.star path {
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+.star__off {
+  color: var(--color-star-empty);
+}
+.star__on {
+  position: absolute;
+  inset: 0 auto 0 0;
+  overflow: hidden;
   color: var(--color-star-filled);
 }
-.stars__off {
-  color: var(--color-star-empty);
+
+/* escolher a nota: estrelas grandes, arrastar não rola a página */
+.star-input {
+  display: inline-flex;
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.star-input:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+.star-input__row {
+  display: flex;
+  gap: 6px;
+}
+.star--large {
+  --star: clamp(44px, 13vw, 56px);
 }
 
 /* ----- Diálogo ----- */
@@ -259,6 +310,75 @@
   gap: var(--space-3);
   margin-top: var(--space-5);
 }
+/* tela da nota: no celular ocupa a tela toda, com o Salvar grande embaixo */
+.dialog--rating {
+  width: min(92vw, 480px);
+}
+.dialog--rating .dialog__title {
+  text-align: center;
+}
+.rating-dialog {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-5) 0 var(--space-2);
+  text-align: center;
+}
+.rating-dialog__value {
+  margin-top: var(--space-3) !important;
+  color: var(--color-text-primary);
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 36px;
+  font-variant-numeric: tabular-nums;
+}
+.rating-dialog__hint {
+  font-size: var(--text-small);
+  color: var(--color-text-muted);
+}
+.rating-dialog__clear {
+  margin-right: auto;
+}
+@media (max-width: 640px) {
+  .dialog--rating {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+  }
+  .dialog--rating .dialog__box {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+    padding: calc(var(--space-7) + env(safe-area-inset-top)) var(--space-5)
+      calc(var(--space-5) + env(safe-area-inset-bottom));
+  }
+  .dialog--rating .dialog__title {
+    font-size: 30px;
+    line-height: 36px;
+  }
+  .dialog--rating .dialog__body {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .dialog--rating .dialog__actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+  .dialog--rating .dialog__actions .btn {
+    min-height: 48px;
+  }
+  .rating-dialog__clear {
+    margin-right: 0;
+  }
+}
+
 .btn--danger-solid {
   background: var(--color-error);
   color: var(--color-background);

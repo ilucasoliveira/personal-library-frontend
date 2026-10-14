@@ -50,8 +50,26 @@ test("adicionar do catálogo, mudar a nota e desfazer a exclusão", async ({ pag
   await page.getByRole("link", { name: "Ver livro" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "O Nome do Vento" })).toBeVisible();
 
-  await page.getByRole("button", { name: "Nota 4 de 5" }).click();
-  await expect(page.getByRole("button", { name: "Nota 4 de 5" })).toHaveAttribute("aria-pressed", "true");
+  // nota em quartos de estrela: arrastar até 3/4 da quarta estrela dá 3,75
+  await page.getByRole("button", { name: "Dar nota" }).click();
+  const dialog = page.getByRole("dialog", { name: "Qual a sua nota para O Nome do Vento?" });
+  const slider = dialog.getByRole("slider", { name: "Nota de 0,25 a 5" });
+  await expect(slider).toBeFocused();
+  await expectAccessible(page);
+  const first = await slider.locator(".star").nth(0).boundingBox();
+  const fourth = await slider.locator(".star").nth(3).boundingBox();
+  const y = fourth.y + fourth.height / 2;
+  await page.mouse.move(first.x + 2, y);
+  await page.mouse.down();
+  await page.mouse.move(fourth.x + fourth.width * 0.7, y, { steps: 8 });
+  await page.mouse.up();
+  await expect(slider).toHaveAttribute("aria-valuetext", "3,75 de 5 estrelas");
+  // teclado: seta para a direita sobe 0,25
+  await slider.press("ArrowRight");
+  await expect(slider).toHaveAttribute("aria-valuenow", "4");
+  await slider.press("ArrowLeft");
+  await dialog.getByRole("button", { name: "Salvar nota" }).click();
+  await expect(page.getByRole("button", { name: "Nota 3,75 de 5. Mudar a nota" })).toBeVisible();
 
   await page.getByRole("button", { name: "Mais ações" }).click();
   await page.getByRole("button", { name: "Excluir livro" }).click();

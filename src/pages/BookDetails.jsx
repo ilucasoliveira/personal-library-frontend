@@ -7,6 +7,9 @@ import StatusIcon from "../components/ui/StatusIcon";
 import Button from "../components/ui/Button";
 import Dialog from "../components/ui/Dialog";
 import MenuButton from "../components/ui/MenuButton";
+import Stars from "../components/ui/Stars";
+import RatingDialog from "../components/RatingDialog";
+import { formatRating } from "../utils/rating";
 
 const STATUSES = ["toRead", "reading", "read"];
 const COMMENT_MAX = 300;
@@ -118,18 +121,16 @@ export default function BookDetails({ book, onBack, onUpdated, onDelete }) {
 
 // status, nota e favorito: mudam na hora e desfazem se a API recusar
 function Controls({ book, readOnly, onSave }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [status, setStatus] = useState(book.reading_status);
   const [rating, setRating] = useState(book.grade || 0);
-  const [hover, setHover] = useState(0);
+  const [ratingOpen, setRatingOpen] = useState(false);
   const [favorite, setFavorite] = useState(book.favorite);
 
   async function change(setter, previous, next, data) {
     setter(next);
     if (!(await onSave(data))) setter(previous);
   }
-
-  const shown = hover || rating;
 
   return (
     <div className="book-controls">
@@ -154,36 +155,34 @@ function Controls({ book, readOnly, onSave }) {
       </div>
 
       <div className="book-controls__row">
-        <span className="book-controls__label" id="rating-label">
+        <span className="book-controls__label">
           {t("details.rating")}
         </span>
-        <div className="rating" role="group" aria-labelledby="rating-label" onMouseLeave={() => setHover(0)}>
-          {[1, 2, 3, 4, 5].map((n) => (
-            <button
-              key={n}
-              type="button"
-              className={`rating__star${n <= shown ? " is-on" : ""}`}
-              aria-label={t("details.rateN", { n })}
-              aria-pressed={n === rating}
-              disabled={readOnly}
-              onMouseEnter={() => !readOnly && setHover(n)}
-              onMouseLeave={() => setHover(0)}
-              onClick={() => n !== rating && change(setRating, rating, n, { grade: n })}
-            >
-              <span aria-hidden="true">★</span>
-            </button>
-          ))}
-          {rating > 0 && !readOnly && (
-            <button
-              type="button"
-              className="btn btn--text rating__clear"
-              onClick={() => change(setRating, rating, 0, { grade: null })}
-            >
-              {t("details.clearRating")}
-            </button>
-          )}
-        </div>
+        <button
+          type="button"
+          className="rating-open"
+          aria-label={rating ? t("details.rateChange", { n: formatRating(rating, lang) }) : t("details.rate")}
+          disabled={readOnly}
+          onClick={() => setRatingOpen(true)}
+        >
+          <Stars rating={rating} empty />
+          <span className="rating-open__value" aria-hidden="true">
+            {rating ? formatRating(rating, lang) : t("details.rate")}
+          </span>
+        </button>
       </div>
+
+      {ratingOpen && (
+        <RatingDialog
+          book={book}
+          rating={rating}
+          onClose={() => setRatingOpen(false)}
+          onSave={(next) => {
+            setRatingOpen(false);
+            change(setRating, rating, next ?? 0, { grade: next });
+          }}
+        />
+      )}
 
       <div className="book-controls__row">
         <span className="book-controls__label">{t("details.favoriteLabel")}</span>

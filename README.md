@@ -37,6 +37,7 @@ This is the frontend counterpart to [personal-library-api](https://github.com/il
 
 **Book page** (`/livro/:id`, opens directly from a link)
 - Status, rating and favorite side by side, all optimistic (they undo themselves if the API refuses)
+- Rating screen with quarter stars (0.25 to 5): drag a finger across the stars on the phone, hover and click or use the arrow keys on desktop; full screen on mobile
 - Personal note that saves itself a second after you stop typing
 - Synopsis collapsed to 5 lines, a catalog-card style record (genre, added, finished)
 - Edit and delete in a "⋯" menu; deleting asks in an in-app dialog and offers **Undo** for 6 seconds
@@ -66,7 +67,7 @@ src/
 ├── theme.js               # Applies theme and accent color
 ├── index.css              # Design tokens, the four themes and page styles
 ├── components/
-│   ├── ui/                # Base components: Button, Cover, Dialog, MenuButton, SearchField, SelectField, Stars, StatusIcon
+│   ├── ui/                # Base components: Button, Cover, Dialog, MenuButton, SearchField, SelectField, Stars, StarInput, StatusIcon
 │   ├── BookCard.jsx       # Shelf card (link + separate favorite button)
 │   ├── AccountMenu.jsx    # Avatar menu (Settings, Log out)
 │   ├── ErrorBoundary.jsx  # "Something went wrong" screen

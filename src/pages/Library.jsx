@@ -4,6 +4,7 @@ import { Link } from "../components/Link";
 import Cover from "../components/ui/Cover";
 import StatusIcon from "../components/ui/StatusIcon";
 import Stars from "../components/ui/Stars";
+import { formatRating } from "../utils/rating";
 import SearchField from "../components/ui/SearchField";
 import SelectField from "../components/ui/SelectField";
 import Button from "../components/ui/Button";
@@ -292,7 +293,7 @@ export default function Library({ books, loading, error, query, onRetry, onOpenB
                     {t(`statusShort.${book.reading_status}`)}
                   </span>
                   <span className="book-row__rating">
-                    <Stars rating={book.grade} label={t("card.rating", { rating: book.grade })} />
+                    <Stars rating={book.grade} label={t("card.rating", { rating: formatRating(book.grade, lang) })} />
                   </span>
                   <span className="book-row__date">
                     {book.reading_status === "read" && book.finished_date
