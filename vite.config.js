@@ -26,4 +26,9 @@ export default defineConfig({
       },
     }),
   ],
+  // testes de unidade (npm test): só os arquivos *.test.js(x) dentro de src
+  test: {
+    environment: 'jsdom',
+    include: ['src/**/*.test.{js,jsx}'],
+  },
 })

@@ -826,15 +826,6 @@ a.btn-ghost {
   background: var(--color-card-hover);
 }
 
-/* ===== Estante ===== */
-.app-main {
-  min-height: 70vh;
-  background: var(--color-background);
-}
-.app-main:focus {
-  outline: none;
-}
-
 /* =====================================================================
    Moldura do app: barra superior, barra inferior (celular) e rodapé
    ===================================================================== */
@@ -964,7 +955,8 @@ a.btn-ghost {
 }
 
 .app-main {
-  min-height: 70vh;
+  /* o rodapé fica abaixo da dobra: trocar o esqueleto pelo conteúdo não empurra nada na tela */
+  min-height: 100vh;
   background: var(--color-background);
 }
 .app-main:focus {
